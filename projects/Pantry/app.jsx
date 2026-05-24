@@ -235,7 +235,8 @@ function SlotSheet({ slot, recipes, onAssign, onClose }) {
 
 // ── PlanCalendar ──────────────────────────────────────────────
 function PlanCalendar({ plan, recipes, onUpdatePlan, onNewPlan, onNavigate }) {
-  const [activeSlot, setActiveSlot] = React.useState(null);
+  const [activeSlot,      setActiveSlot]      = React.useState(null);
+  const [confirmNewPlan,  setConfirmNewPlan]   = React.useState(false);
 
   const recipeMap = Object.fromEntries(recipes.map(r => [r.id, r]));
 
@@ -291,7 +292,7 @@ function PlanCalendar({ plan, recipes, onUpdatePlan, onNewPlan, onNavigate }) {
           </div>
         </div>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <button className="btn btn-sm" onClick={onNewPlan}>Start new plan</button>
+          <button className="btn btn-sm btn-olive" onClick={() => setConfirmNewPlan(true)}>Start new plan</button>
           <button className="btn btn-sm btn-brown" onClick={() => onNavigate('grocery')}>
             Grocery list →
           </button>
@@ -338,6 +339,24 @@ function PlanCalendar({ plan, recipes, onUpdatePlan, onNewPlan, onNavigate }) {
       {activeSlot && (
         <SlotSheet slot={activeSlot} recipes={recipes}
           onAssign={handleAssign} onClose={() => setActiveSlot(null)} />
+      )}
+
+      {confirmNewPlan && (
+        <div className="modal-backdrop" onClick={() => setConfirmNewPlan(false)}>
+          <div className="modal-sheet" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+            <div className="h3" style={{ marginBottom: 8 }}>Start a new plan?</div>
+            <div style={{ color: 'var(--ink-soft)', fontSize: 14, lineHeight: 1.6, marginBottom: 22 }}>
+              Your current plan will be cleared.<br />
+              <strong style={{ color: 'var(--ink)' }}>Your saved recipes are safe</strong> — only the calendar is reset.
+            </div>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn fill" onClick={() => setConfirmNewPlan(false)}>Cancel</button>
+              <button className="btn btn-olive fill" onClick={() => { setConfirmNewPlan(false); onNewPlan(); }}>
+                Yes, start fresh
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
