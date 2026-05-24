@@ -468,18 +468,101 @@ function RecipeForm({ recipe, onSave, onClose }) {
 }
 
 // ── RecipeList ────────────────────────────────────────────────
-function RecipeList({ recipes, onAdd, onEdit, onDelete }) {
-  const [confirmId, setConfirmId] = React.useState(null);
+function RecipeList({ recipes, onAdd, onEdit, onDelete, onImport }) {
+  const [confirmId,     setConfirmId]     = React.useState(null);
+  const [importPreview, setImportPreview] = React.useState(null); // {recipes, mode}
+  const fileInputRef = React.useRef();
+
+  function exportToCSV() {
+    const header = 'name,sides,ingredients';
+    const rows = recipes.map(r => {
+      const name        = (r.main_dish_name || '').replace(/,/g, ' ');
+      const sides       = (r.side_dishes  || []).join('|');
+      const ingredients = (r.ingredients  || []).join('|');
+      return `${name},${sides},${ingredients}`;
+    });
+    const csv  = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'pantry-recipes.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = ''; // reset so same file can be re-imported
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const lines = ev.target.result.split('\n').map(l => l.trim()).filter(Boolean);
+      const dataLines = lines[0].toLowerCase().startsWith('name') ? lines.slice(1) : lines;
+      const imported = dataLines.map(line => {
+        const [name, sides, ingredients] = line.split(',');
+        return {
+          id:             generateId(),
+          main_dish_name: (name        || '').trim(),
+          side_dishes:    (sides       || '').split('|').map(s => s.trim()).filter(Boolean),
+          ingredients:    (ingredients || '').split('|').map(i => i.trim()).filter(Boolean),
+        };
+      }).filter(r => r.main_dish_name);
+      setImportPreview(imported);
+    };
+    reader.readAsText(file);
+  }
+
+  function confirmImport(mode) {
+    const merged = mode === 'add'
+      ? [...recipes, ...importPreview]
+      : importPreview;
+    onImport(merged);
+    setImportPreview(null);
+  }
 
   return (
     <div className="page">
-      <div className="spread" style={{ marginBottom: 20 }}>
+      <div className="spread" style={{ marginBottom: 6 }}>
         <div>
           <div className="h2">Recipes</div>
           {recipes.length > 0 && <div className="note">{recipes.length} saved</div>}
         </div>
-        <button className="btn btn-brown" onClick={onAdd}>＋ Add recipe</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {recipes.length > 0 && (
+            <button className="btn btn-sm" onClick={exportToCSV}>↓ Export</button>
+          )}
+          <button className="btn btn-sm" onClick={() => fileInputRef.current.click()}>↑ Import</button>
+          <button className="btn btn-brown" onClick={onAdd}>＋ Add recipe</button>
+        </div>
       </div>
+      <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontFamily: 'var(--mono)', marginBottom: 16 }}>
+        Export your recipes to a CSV file you can open in Excel — import to restore or move between devices.
+      </div>
+      <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileChange} />
+
+      {/* Import preview modal */}
+      {importPreview && (
+        <div className="modal-backdrop" onClick={() => setImportPreview(null)}>
+          <div className="modal-sheet" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <div className="h3" style={{ marginBottom: 6 }}>Import {importPreview.length} recipe{importPreview.length !== 1 ? 's' : ''}</div>
+            <div style={{ color: 'var(--ink-soft)', fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
+              {importPreview.slice(0, 5).map(r => r.main_dish_name).join(', ')}{importPreview.length > 5 ? `… +${importPreview.length - 5} more` : ''}
+            </div>
+            <div style={{ color: 'var(--ink-soft)', fontSize: 13, marginBottom: 20 }}>
+              Add to your {recipes.length} existing recipe{recipes.length !== 1 ? 's' : ''}, or replace them all?
+            </div>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn fill" onClick={() => setImportPreview(null)}>Cancel</button>
+              {recipes.length > 0 && (
+                <button className="btn fill" onClick={() => confirmImport('add')}>Add to existing</button>
+              )}
+              <button className="btn btn-brown fill" onClick={() => confirmImport('replace')}>
+                {recipes.length > 0 ? 'Replace all' : 'Import'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {recipes.length === 0 && (
         <div className="empty-state">
@@ -706,7 +789,8 @@ function App() {
       {view === 'recipes' && (
         <RecipeList recipes={recipes} onAdd={() => openRecipeForm(null)}
           onEdit={openRecipeForm}
-          onDelete={id => updateRecipes(recipes.filter(r => r.id !== id))} />
+          onDelete={id => updateRecipes(recipes.filter(r => r.id !== id))}
+          onImport={updateRecipes} />
       )}
       {view === 'grocery' && (
         <GroceryList plan={plan} recipes={recipes} />
