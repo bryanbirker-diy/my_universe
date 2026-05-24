@@ -540,22 +540,47 @@ function RecipeList({ recipes, onAdd, onEdit, onDelete }) {
 
 // ── GroceryList ───────────────────────────────────────────────
 function GroceryList({ plan, recipes }) {
-  const [checked, setChecked] = React.useState({});
+  const [checked,    setChecked]    = React.useState({});
+  const [copyLabel,  setCopyLabel]  = React.useState('⇧ Copy');
+  const [shareLabel, setShareLabel] = React.useState('🔔 Reminders');
 
   const items = React.useMemo(() => generateGroceryList(plan, recipes), [plan, recipes]);
 
   function toggle(name) { setChecked(p => ({ ...p, [name]: !p[name] })); }
 
+  function listText(itemList) {
+    return itemList.map(i => i.name).join('\n');
+  }
+
   async function copyToClipboard() {
-    const text = items.map(i => `• ${i.name}`).join('\n');
+    const remaining = items.filter(i => !checked[i.name]);
+    const text = listText(remaining);
     try {
       await navigator.clipboard.writeText(text);
     } catch {
       prompt('Copy your grocery list:', text);
       return;
     }
-    // Brief visual feedback via button text — handled in parent via key trick
-    alert('Copied!');
+    setCopyLabel('✓ Copied');
+    setTimeout(() => setCopyLabel('⇧ Copy'), 1800);
+  }
+
+  async function syncToReminders() {
+    const remaining = items.filter(i => !checked[i.name]);
+    if (!remaining.length) return;
+    const text = listText(remaining);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Grocery List', text });
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return; // user cancelled share sheet
+      }
+    }
+    // Fallback: copy to clipboard
+    try { await navigator.clipboard.writeText(text); } catch {}
+    setShareLabel('✓ Copied');
+    setTimeout(() => setShareLabel('🔔 Reminders'), 1800);
   }
 
   if (!plan) {
@@ -602,7 +627,10 @@ function GroceryList({ plan, recipes }) {
             {formatDate(plan.start_date)} – {formatDate(plan.end_date)} · {numDays} day{numDays !== 1 ? 's' : ''} · {items.length} item{items.length !== 1 ? 's' : ''} · from {recipeSlots} recipe slot{recipeSlots !== 1 ? 's' : ''}
           </div>
         </div>
-        <button className="btn btn-sm" onClick={copyToClipboard}>⇧ Copy list</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-sm" onClick={copyToClipboard}>{copyLabel}</button>
+          <button className="btn btn-sm" onClick={syncToReminders}>{shareLabel}</button>
+        </div>
       </div>
 
       <div className="divider-wavy" style={{ margin: '12px 0 16px' }} />
