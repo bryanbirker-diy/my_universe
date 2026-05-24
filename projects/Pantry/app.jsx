@@ -6,7 +6,7 @@ function Nav({ view, setView, onAddRecipe }) {
     <nav className="app-nav">
       <div className="brand">
         <span className="brand-mark" />
-        My Pantry
+        Our Pantry
       </div>
       <div className="nav-tabs">
         {[['plan','Plan'],['recipes','Recipes'],['grocery','Grocery List']].map(([id, label]) => (
