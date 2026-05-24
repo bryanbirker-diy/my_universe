@@ -477,8 +477,8 @@ function RecipeList({ recipes, onAdd, onEdit, onDelete, onImport }) {
     const header = 'name,sides,ingredients';
     const rows = recipes.map(r => {
       const name        = (r.main_dish_name || '').replace(/,/g, ' ');
-      const sides       = (r.side_dishes  || []).join('|');
-      const ingredients = (r.ingredients  || []).join('|');
+      const sides       = (r.side_dishes  || []).join('; ');
+      const ingredients = (r.ingredients  || []).join('; ');
       return `${name},${sides},${ingredients}`;
     });
     const csv  = [header, ...rows].join('\n');
@@ -502,8 +502,8 @@ function RecipeList({ recipes, onAdd, onEdit, onDelete, onImport }) {
         return {
           id:             generateId(),
           main_dish_name: (name        || '').trim(),
-          side_dishes:    (sides       || '').split('|').map(s => s.trim()).filter(Boolean),
-          ingredients:    (ingredients || '').split('|').map(i => i.trim()).filter(Boolean),
+          side_dishes:    (sides       || '').split(';').map(s => s.trim()).filter(Boolean),
+          ingredients:    (ingredients || '').split(';').map(i => i.trim()).filter(Boolean),
         };
       }).filter(r => r.main_dish_name);
       setImportPreview(imported);
