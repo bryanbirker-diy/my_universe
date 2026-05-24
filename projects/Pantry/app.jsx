@@ -553,15 +553,28 @@ function GroceryList({ plan, recipes }) {
 
   async function copyToClipboard() {
     const remaining = items.filter(i => !checked[i.name]);
+    if (!remaining.length) return;
     const text = listText(remaining);
+
+    // Give feedback immediately — don't wait on clipboard permission
+    setCopyLabel('📋 Ready to paste!');
+    setTimeout(() => setCopyLabel('Prepare list'), 2500);
+
+    // Try modern clipboard API first, fall back to execCommand
     try {
       await navigator.clipboard.writeText(text);
     } catch {
-      prompt('Copy your grocery list:', text);
-      return;
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch { /* silent — label already updated */ }
     }
-    setCopyLabel('📋 Ready to paste!');
-    setTimeout(() => setCopyLabel('Prepare list'), 2500);
   }
 
   if (!plan) {
