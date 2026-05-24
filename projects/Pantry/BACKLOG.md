@@ -40,13 +40,30 @@ page reloads.
 As the recipe library grows, a search box on the recipe picker and recipe
 list becomes important. Simple name filter would cover most cases.
 
-### Eat out / Ad hoc notes
-Let users add a short note to eat out or ad hoc slots (e.g. "Pizza night"
-or "Bryan's birthday dinner") so the calendar is more readable.
+### Party tricks — recipes you bring
+A tagged category of recipes for things you bring to events: fruit trays,
+veggie boards, buffalo dip, etc. These are still full recipes (ingredients
+flow to the grocery list) but are flagged as "party tricks" and surfaced
+specifically in the Going out flow.
+
+When a slot is set to "Going out" with a label, a second optional step
+appears: "Bringing anything?" — filtered to party trick recipes only.
+The calendar cell shows both: "🎉 Ang's Birthday · Buffalo Dip".
+Grocery list attributes the ingredients to the event name.
+
+Implementation notes:
+- Add a "type" field to recipes: 'dinner' (default) or 'party'
+- Recipe form gets a toggle: "This is something I bring places"
+- Party trick recipes are hidden from regular meal slot picker
+- Going out flow gets a step 2 for bringing something (optional)
+- Effort: Medium — touches recipe form, slot sheet, calendar display, grocery list
 
 ### Duplicate recipe warning
 If the user adds a recipe with the same name as an existing one, show a
 warning before saving.
+
+### ~~Going out labels~~ ✅ shipped
+~~Let users title a Going out slot (e.g. "Ang's Birthday", "Going to Jane's").~~
 
 ---
 
