@@ -89,8 +89,8 @@ function DateRangePicker({ onStart, existingPlan }) {
         </div>
       )}
 
-      <button className="btn btn-brown btn-lg" style={{ marginTop: 22, width: '100%' }} onClick={tryStart}>
-        Build my calendar →
+      <button className="btn btn-olive btn-lg" style={{ marginTop: 22, width: '100%' }} onClick={tryStart}>
+        Let's go →
       </button>
 
       {existingPlan && (
