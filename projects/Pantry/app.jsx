@@ -541,7 +541,7 @@ function RecipeList({ recipes, onAdd, onEdit, onDelete }) {
 // ── GroceryList ───────────────────────────────────────────────
 function GroceryList({ plan, recipes }) {
   const [checked,   setChecked]  = React.useState({});
-  const [copyLabel, setCopyLabel] = React.useState('⇧ Copy');
+  const [copyLabel, setCopyLabel] = React.useState('Prepare list');
 
   const items = React.useMemo(() => generateGroceryList(plan, recipes), [plan, recipes]);
 
@@ -560,8 +560,8 @@ function GroceryList({ plan, recipes }) {
       prompt('Copy your grocery list:', text);
       return;
     }
-    setCopyLabel('✓ Copied');
-    setTimeout(() => setCopyLabel('⇧ Copy'), 1800);
+    setCopyLabel('📋 Ready to paste!');
+    setTimeout(() => setCopyLabel('Prepare list'), 2500);
   }
 
   if (!plan) {
@@ -601,7 +601,7 @@ function GroceryList({ plan, recipes }) {
 
   return (
     <div className="page">
-      <div className="spread" style={{ marginBottom: 6 }}>
+      <div className="spread" style={{ marginBottom: 4 }}>
         <div>
           <div className="h2">Grocery List</div>
           <div className="note">
@@ -610,8 +610,11 @@ function GroceryList({ plan, recipes }) {
         </div>
         <button className="btn btn-sm" onClick={copyToClipboard}>{copyLabel}</button>
       </div>
+      <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontFamily: 'var(--mono)', marginBottom: 6 }}>
+        Check off what you already have — copy the rest to your shopping app.
+      </div>
 
-      <div className="divider-wavy" style={{ margin: '12px 0 16px' }} />
+      <div className="divider-wavy" style={{ margin: '8px 0 16px' }} />
 
       {/* Unchecked items */}
       {unchecked.map(item => (
@@ -629,7 +632,7 @@ function GroceryList({ plan, recipes }) {
       {/* Checked / got-it items */}
       {checkedItems.length > 0 && (
         <div style={{ marginTop: 20 }}>
-          <div className="eyebrow" style={{ marginBottom: 10 }}>Got it ✓</div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Already have ✓</div>
           {checkedItems.map(item => (
             <div key={item.name} className="grocery-item" style={{ opacity: 0.45 }} onClick={() => toggle(item.name)}>
               <span className="check checked" style={{ flexShrink: 0, marginTop: 2 }} />
