@@ -76,6 +76,50 @@ warning before saving.
 
 ---
 
+## 🏠 Bigger picture — "Ours" family suite
+
+### Brand concept
+A family planning suite called **Ours** — the name subtly doubles as *Hours*,
+signalling both ownership ("our family's things") and time ("how you spend
+your hours"). The wordplay doesn't need to be announced — a tagline like
+*"How you spend your hours"* or a quiet clock element in the logo plants it.
+
+Our Pantry becomes the first module in the suite. Others follow the same
+naming pattern and share the same design system (earth tones, Kalam/Caveat
+fonts, sketchy borders, warm paper background).
+
+### The suite modules (vision)
+- **Our Pantry** ✅ — meal planning (built)
+- **Our Time** — family calendar, who's where, shared schedule
+- **Our Goals** — savings targets, milestones, bucket list
+- **Our Budget** — where the money goes each month
+- **Our Health** — habits, appointments, wellness tracking
+
+### The landing page ("Ours" dashboard)
+The root `index.html` currently redirects to Pantry — this becomes the
+suite landing page. A clean card grid, one card per module, same visual
+language throughout. Tap a card to enter that app.
+
+Each module lives in its own `projects/` folder in the same repo. One
+design system (`wireframe-base.css`), one push to deploy everything to
+GitHub Pages.
+
+### Design note on the Hours wordplay
+Keep it subtle. Options:
+- The "O" in Ours has a faint clock-face texture
+- Tagline under the logo: "How you spend your hours."
+- The dot/period after each module name is styled as a small clock dot
+The user should feel it before they notice it.
+
+### Technical architecture
+- Monorepo: all modules in `my_universe` repo under `projects/`
+- Shared CSS: `wireframe-base.css` at repo root, referenced by all modules
+- Each module is self-contained (its own index.html, store.js, app.jsx)
+- Cloud sync (Firebase) added per-module as they mature
+- Effort to build the dashboard shell: Small. Full suite: Long term.
+
+---
+
 ## 🔮 Longer term
 
 ### Multi-device without cloud (QR / share link)
