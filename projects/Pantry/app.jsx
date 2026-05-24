@@ -623,7 +623,7 @@ function GroceryList({ plan, recipes }) {
         </div>
         <button className="btn btn-sm" onClick={copyToClipboard}>{copyLabel}</button>
       </div>
-      <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontFamily: 'var(--mono)', marginBottom: 6 }}>
+      <div style={{ fontSize: 12, color: 'var(--brown)', fontFamily: 'var(--mono)', marginBottom: 6 }}>
         Check off what you already have — copy the rest to your shopping app.
       </div>
 
