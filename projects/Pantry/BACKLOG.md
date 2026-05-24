@@ -56,7 +56,16 @@ Implementation notes:
 - Recipe form gets a toggle: "This is something I bring places"
 - Party trick recipes are hidden from regular meal slot picker
 - Going out flow gets a step 2 for bringing something (optional)
-- Effort: Medium — touches recipe form, slot sheet, calendar display, grocery list
+
+CSV / export-import impact (must handle before shipping):
+- CSV gains a 4th column: name, sides, ingredients, type
+- type value is either blank/"dinner" (regular) or "party"
+- Export must write the type column for all recipes
+- Import must read the type column and default to 'dinner' if blank or missing
+  (ensures all existing CSV files from before this feature still import cleanly)
+- Example row: "Buffalo Dip,,cream cheese; hot sauce; cheddar,party"
+- Effort: Medium — touches recipe form, slot sheet, calendar display,
+  grocery list attribution, and export/import
 
 ### Duplicate recipe warning
 If the user adds a recipe with the same name as an existing one, show a
