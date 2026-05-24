@@ -122,12 +122,15 @@ function DateRangePicker({ onStart, existingPlan }) {
 
 // ── SlotSheet ─────────────────────────────────────────────────
 function SlotSheet({ slot, recipes, onAssign, onClose }) {
-  const [mode, setMode] = React.useState('menu');
-  const [search, setSearch] = React.useState('');
-  const searchRef = React.useRef(null);
+  const [mode,     setMode]     = React.useState('menu');
+  const [search,   setSearch]   = React.useState('');
+  const [outLabel, setOutLabel] = React.useState('');
+  const searchRef  = React.useRef(null);
+  const outLabelRef = React.useRef(null);
 
   React.useEffect(() => {
-    if (mode === 'pick-recipe' && searchRef.current) searchRef.current.focus();
+    if (mode === 'pick-recipe' && searchRef.current)   searchRef.current.focus();
+    if (mode === 'going-out'   && outLabelRef.current) outLabelRef.current.focus();
   }, [mode]);
 
   const filtered = recipes.filter(r =>
@@ -136,8 +139,8 @@ function SlotSheet({ slot, recipes, onAssign, onClose }) {
 
   const MEAL_FULL = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner' };
 
-  function assign(status, recipe_id = null) {
-    onAssign(slot.id, status, recipe_id);
+  function assign(status, recipe_id = null, label = '') {
+    onAssign(slot.id, status, recipe_id, label);
     onClose();
   }
 
@@ -170,21 +173,21 @@ function SlotSheet({ slot, recipes, onAssign, onClose }) {
 
               <button className="btn btn-terracotta"
                 style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px', gap: 12 }}
-                onClick={() => assign('eat_out')}>
-                <span style={{ fontSize: 22 }}>🥡</span>
+                onClick={() => { setOutLabel(''); setMode('going-out'); }}>
+                <span style={{ fontSize: 22 }}>🎉</span>
                 <div style={{ textAlign: 'left' }}>
-                  <div className="h3" style={{ fontSize: 15, color: 'inherit' }}>Eat out</div>
-                  <div className="note" style={{ color: 'rgba(253,246,236,0.75)' }}>skip groceries for this slot</div>
+                  <div className="h3" style={{ fontSize: 15, color: 'inherit' }}>Going out</div>
+                  <div className="note" style={{ color: 'rgba(253,246,236,0.75)' }}>plans, events, eating out · no groceries</div>
                 </div>
               </button>
 
               <button className="btn btn-olive"
                 style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px', gap: 12 }}
-                onClick={() => assign('ad_hoc')}>
+                onClick={() => assign('wing_it')}>
                 <span style={{ fontSize: 22 }}>🤷</span>
                 <div style={{ textAlign: 'left' }}>
-                  <div className="h3" style={{ fontSize: 15, color: 'inherit' }}>Ad hoc</div>
-                  <div className="note" style={{ color: 'rgba(247,245,230,0.8)' }}>winging it · no groceries</div>
+                  <div className="h3" style={{ fontSize: 15, color: 'inherit' }}>Wing it</div>
+                  <div className="note" style={{ color: 'rgba(247,245,230,0.8)' }}>no plan · no groceries</div>
                 </div>
               </button>
             </div>
@@ -228,6 +231,25 @@ function SlotSheet({ slot, recipes, onAssign, onClose }) {
             </div>
           </>
         )}
+
+        {mode === 'going-out' && (
+          <>
+            <div className="row" style={{ gap: 10, marginBottom: 16 }}>
+              <button className="btn btn-sm btn-ghost" onClick={() => setMode('menu')}>← back</button>
+              <div className="h3">What's the plan?</div>
+            </div>
+            <input ref={outLabelRef} type="text" className="text-input"
+              value={outLabel} onChange={e => setOutLabel(e.target.value)}
+              placeholder="e.g. Ang's Birthday, Going to Jane's…"
+              onKeyDown={e => e.key === 'Enter' && assign('going_out', null, outLabel)}
+              style={{ marginBottom: 14 }} />
+            <div className="note" style={{ marginBottom: 16 }}>Optional — leave blank to just mark as going out.</div>
+            <button className="btn btn-terracotta" style={{ width: '100%' }}
+              onClick={() => assign('going_out', null, outLabel)}>
+              Set it ✓
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -254,17 +276,22 @@ function PlanCalendar({ plan, recipes, onUpdatePlan, onNewPlan, onNavigate }) {
   const recipeCount = plan.slots.filter(s => s.status === 'recipe').length;
   const numDays     = daysBetween(plan.start_date, plan.end_date);
 
-  function handleAssign(slotId, status, recipe_id) {
+  function handleAssign(slotId, status, recipe_id, label = '') {
     onUpdatePlan({
       ...plan,
-      slots: plan.slots.map(s => s.id === slotId ? { ...s, status, recipe_id: recipe_id || null } : s),
+      slots: plan.slots.map(s => s.id === slotId
+        ? { ...s, status, recipe_id: recipe_id || null, label: label || '' }
+        : s),
     });
   }
 
   function cellContent(slot) {
     if (!slot || slot.status === 'empty') return { kind: 'empty' };
-    if (slot.status === 'eat_out') return { kind: 'eatout', name: 'Eating out 🥡' };
-    if (slot.status === 'ad_hoc') return { kind: 'adhoc', name: 'Ad hoc 🤷' };
+    // support legacy status values
+    if (slot.status === 'eat_out'  || slot.status === 'going_out')
+      return { kind: 'eatout', name: slot.label ? `🎉 ${slot.label}` : 'Going out 🎉' };
+    if (slot.status === 'ad_hoc'   || slot.status === 'wing_it')
+      return { kind: 'adhoc',  name: 'Wing it 🤷' };
     if (slot.status === 'recipe') {
       const r = recipeMap[slot.recipe_id];
       if (!r) return { kind: 'missing', name: '⚠ Recipe removed' };
