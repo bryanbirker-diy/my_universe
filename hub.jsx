@@ -2,6 +2,9 @@
    Mobile-first. DeskShell adds rails at ≥768px / ≥1024px.
    The center column is identical at every width. */
 
+// ─── Auth imports (from shared firebase-auth.jsx) ─────────────────────────
+const { AuthProvider, useAuth, InviteCodeBanner } = window._oursAuth;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 function greeting() {
@@ -296,7 +299,21 @@ function BottomTabBar({ active = 'home' }) {
 
 // ─── Left rail (desktop ≥1024px) ─────────────────────────────────────────
 
-function LeftRail({ activeProduct }) {
+function LeftRail({ activeProduct, household, user }) {
+  const [copied, setCopied] = React.useState(false);
+
+  function copyCode() {
+    if (!household?.inviteCode) return;
+    navigator.clipboard.writeText(household.inviteCode).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  }
+
+  const memberProfiles = household?.memberProfiles || {};
+  const memberList = Object.values(memberProfiles);
+  const soloHousehold = (household?.memberUids || []).length < 2;
+  const firstName = name => (name || '').split(' ')[0] || name;
+
   return (
     <div style={{
       width: 220, flexShrink: 0,
@@ -371,19 +388,57 @@ function LeftRail({ activeProduct }) {
 
       {/* Household */}
       <div>
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 10 }}>
-          Household
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 8 }}>
+          {household?.name || 'Household'}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {['Jamie', 'Alex'].map(name => (
-            <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--pen)', fontSize: 13, color: 'var(--ink-soft)' }}>
+          {memberList.length > 0 ? memberList.map((m, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--pen)', fontSize: 13, color: 'var(--ink-soft)' }}>
               <div style={{ width: 20, height: 20, borderRadius: '50%', border: '1.5px solid var(--rule-soft)', background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, flexShrink: 0 }}>
-                {name[0]}
+                {(m.displayName || '?')[0]}
               </div>
-              {name}
+              {firstName(m.displayName)}
             </div>
-          ))}
-          <div style={{ fontFamily: 'var(--pen)', fontSize: 12, color: 'var(--ink-fade)', paddingLeft: 28, cursor: 'pointer' }}>+ invite</div>
+          )) : user && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--pen)', fontSize: 13, color: 'var(--ink-soft)' }}>
+              <div style={{ width: 20, height: 20, borderRadius: '50%', border: '1.5px solid var(--rule-soft)', background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, flexShrink: 0 }}>
+                {(user.displayName || user.email || '?')[0]}
+              </div>
+              {firstName(user.displayName || user.email)}
+            </div>
+          )}
+
+          {/* Invite code if solo */}
+          {soloHousehold && household?.inviteCode && (
+            <div style={{ paddingLeft: 0, marginTop: 4 }}>
+              <div style={{ fontFamily: 'var(--pen)', fontSize: 11, color: 'var(--ink-fade)', marginBottom: 4 }}>
+                Invite your partner:
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 14, fontWeight: 600, color: 'var(--terracotta)', letterSpacing: '0.15em' }}>
+                  {household.inviteCode}
+                </span>
+                <button onClick={copyCode} style={{
+                  background: copied ? 'var(--olive)' : 'transparent',
+                  color: copied ? '#fff' : 'var(--ink-fade)',
+                  border: `1px solid ${copied ? 'var(--olive)' : 'var(--rule)'}`,
+                  borderRadius: 3, padding: '2px 6px',
+                  fontFamily: 'var(--pen)', fontSize: 10, cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}>{copied ? '✓' : 'copy'}</button>
+              </div>
+            </div>
+          )}
+
+          {/* Sign out */}
+          {user && (
+            <button onClick={() => fbAuth.signOut()} style={{
+              background: 'none', border: 'none',
+              fontFamily: 'var(--pen)', fontSize: 11,
+              color: 'var(--ink-fade)', cursor: 'pointer',
+              textAlign: 'left', padding: '4px 0 0', opacity: 0.6,
+            }}>Sign out</button>
+          )}
         </div>
       </div>
     </div>
@@ -443,7 +498,7 @@ function RightRail({ stats }) {
 
 // ─── Center column content ────────────────────────────────────────────────
 
-function CenterColumn({ stats }) {
+function CenterColumn({ stats, user, household }) {
   const [comingSoon, setComingSoon] = React.useState(null);
 
   function handleCardClick(product) {
@@ -490,7 +545,7 @@ function CenterColumn({ stats }) {
           letterSpacing: '0.1em', textTransform: 'uppercase',
           color: 'var(--ink-fade)', marginBottom: 6,
         }}>
-          {greeting()}, Jamie
+          {greeting()}{user ? `, ${user.displayName?.split(' ')[0] || ''}` : ''}
         </div>
 
         <h1 style={{
@@ -513,6 +568,10 @@ function CenterColumn({ stats }) {
 
       {/* Product cards */}
       <div style={{ padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+        {/* Mobile: invite code banner if solo household */}
+        {household?.inviteCode && (household?.memberUids || []).length < 2 && (
+          <InviteCodeBanner household={household} />
+        )}
         {PRODUCTS.map(p => (
           <ProductCard
             key={p.id}
@@ -568,12 +627,12 @@ function CenterColumn({ stats }) {
 
 // ─── DeskShell ────────────────────────────────────────────────────────────
 
-function DeskShell({ children, stats }) {
+function DeskShell({ children, stats, user, household }) {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--paper-2)' }}>
       {/* Left rail — ≥1024px */}
       <div className="left-rail">
-        <LeftRail activeProduct="hub" />
+        <LeftRail activeProduct="hub" household={household} user={user} />
       </div>
 
       {/* Center column */}
@@ -600,14 +659,23 @@ function DeskShell({ children, stats }) {
 // ─── App root ─────────────────────────────────────────────────────────────
 
 function HubApp() {
+  const { user, household } = useAuth();
   const stats = React.useMemo(() => readPantryStats(), []);
 
   return (
-    <DeskShell stats={stats}>
-      <CenterColumn stats={stats} />
+    <DeskShell stats={stats} user={user} household={household}>
+      <CenterColumn stats={stats} user={user} household={household} />
     </DeskShell>
   );
 }
 
+function RootApp() {
+  return (
+    <AuthProvider>
+      <HubApp />
+    </AuthProvider>
+  );
+}
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<HubApp />);
+root.render(<RootApp />);

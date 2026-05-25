@@ -1,5 +1,8 @@
 // app.jsx — Pantry Meal Planner (all components)
 
+// ─── Auth import ──────────────────────────────────────────────
+const { AuthProvider: PantryAuthProvider, useAuth: usePantryAuth } = window._oursAuth;
+
 // ── Nav ───────────────────────────────────────────────────────
 function Nav({ view, setView, onAddRecipe }) {
   return (
@@ -796,6 +799,10 @@ function GroceryList({ plan, recipes }) {
 
 // ── App root ──────────────────────────────────────────────────
 function App() {
+  const { household } = usePantryAuth();
+  const householdId = household?.id;
+
+  // Seed from localStorage while Firebase loads; onSnapshot takes over
   const [view, setView]               = React.useState('plan');
   const [recipes, setRecipes]         = React.useState(() => getRecipes());
   const [plan, setPlan]               = React.useState(() => getPlan());
@@ -803,15 +810,44 @@ function App() {
   const [recipeFormOpen, setRecipeFormOpen] = React.useState(false);
   const [editingRecipe, setEditingRecipe]   = React.useState(null);
 
-  function updateRecipes(updated) { saveRecipes(updated); setRecipes(updated); }
-  function updatePlan(updated)    { if (updated) savePlan(updated); else clearPlan(); setPlan(updated); }
+  // Real-time subscriptions — kick in once we have a householdId
+  React.useEffect(() => {
+    if (!householdId) return;
+    const unsubR = subscribeRecipes(householdId, setRecipes);
+    const unsubP = subscribePlan(householdId, setPlan);
+    return () => { unsubR(); unsubP(); };
+  }, [householdId]);
+
+  // ── Recipes CRUD ────────────────────────────────────────────
+  function updateRecipes(updated) {
+    saveRecipes(updated); // localStorage optimistic
+    setRecipes(updated);
+  }
+
+  async function handleSaveRecipe(r) {
+    const updated = editingRecipe
+      ? recipes.map(x => x.id === r.id ? r : x)
+      : [...recipes, r];
+    updateRecipes(updated);
+    setRecipeFormOpen(false);
+    // Async Firestore write — onSnapshot will self-correct
+    saveRecipeFirestore(householdId, r).catch(console.error);
+  }
+
+  async function handleDeleteRecipe(id) {
+    const updated = recipes.filter(r => r.id !== id);
+    updateRecipes(updated);
+    deleteRecipeFirestore(householdId, id).catch(console.error);
+  }
+
+  // ── Plan CRUD ───────────────────────────────────────────────
+  function updatePlan(updated) {
+    if (updated) savePlan(updated); else clearPlan();
+    setPlan(updated);
+    savePlanFirestore(householdId, updated).catch(console.error);
+  }
 
   function openRecipeForm(r = null) { setEditingRecipe(r); setRecipeFormOpen(true); }
-
-  function handleSaveRecipe(r) {
-    updateRecipes(editingRecipe ? recipes.map(x => x.id === r.id ? r : x) : [...recipes, r]);
-    setRecipeFormOpen(false);
-  }
 
   function handleStartPlan(start, end, cancel = false) {
     if (cancel) { setNewPlanMode(false); return; }
@@ -842,8 +878,8 @@ function App() {
       {view === 'recipes' && (
         <RecipeList recipes={recipes} onAdd={() => openRecipeForm(null)}
           onEdit={openRecipeForm}
-          onDelete={id => updateRecipes(recipes.filter(r => r.id !== id))}
-          onImport={updateRecipes} />
+          onDelete={handleDeleteRecipe}
+          onImport={updated => { updateRecipes(updated); updated.forEach(r => saveRecipeFirestore(householdId, r).catch(console.error)); }} />
       )}
       {view === 'grocery' && (
         <GroceryList plan={plan} recipes={recipes} />
@@ -857,4 +893,12 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+function PantryRoot() {
+  return (
+    <PantryAuthProvider>
+      <App />
+    </PantryAuthProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<PantryRoot />);

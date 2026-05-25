@@ -1,5 +1,8 @@
 // app.jsx — Our Exploring
 
+// ─── Auth import ──────────────────────────────────────────────────────────
+const { AuthProvider: ExAuthProvider, useAuth: useExAuth } = window._oursAuth;
+
 // ─── Constants ────────────────────────────────────────────────────────────
 
 const STATUSES = [
@@ -553,8 +556,7 @@ function TripSheet({ trip, onSave, onDelete, onClose }) {
   function handleSave() {
     if (!name.trim()) { setError('Give this trip a name.'); return; }
     setError('');
-    onSave({
-      id:            trip.id || generateId(),
+    const data = {
       name:          name.trim(),
       duration:      Number(duration),
       targetDate:    target,
@@ -565,7 +567,10 @@ function TripSheet({ trip, onSave, onDelete, onClose }) {
       windowType,
       departTime,
       whosComing,
-    });
+    };
+    // Preserve id if editing an existing trip; omit for new trips (store assigns it)
+    if (trip.id) data.id = trip.id;
+    onSave(data);
   }
 
   return (
@@ -845,26 +850,44 @@ function TripSheet({ trip, onSave, onDelete, onClose }) {
 // ─── App root ─────────────────────────────────────────────────────────────
 
 function ExploringApp() {
-  const [trips,     setTrips]    = React.useState(() => loadTrips());
-  const [tab,       setTab]      = React.useState('trips');
-  const [sheet,     setSheet]    = React.useState(null); // null | {} (new) | trip (edit)
+  const { household } = useExAuth();
+  const householdId = household?.id;
 
-  function persist(updated) {
-    setTrips(updated);
-    saveTrips(updated);
-  }
+  // Seed from localStorage while Firebase loads; replaced by onSnapshot
+  const [trips, setTrips] = React.useState(() => loadTripsLocal());
+  const [tab,   setTab]   = React.useState('trips');
+  const [sheet, setSheet] = React.useState(null); // null | {} (new) | trip (edit)
 
-  function handleSave(trip) {
-    const existing = trips.find(t => t.id === trip.id);
-    const updated  = existing
-      ? trips.map(t => t.id === trip.id ? trip : t)
-      : [...trips, trip];
-    persist(updated);
+  // Real-time Firestore subscription
+  React.useEffect(() => {
+    if (!householdId) return;
+    const unsub = subscribeTrips(householdId, setTrips);
+    return unsub;
+  }, [householdId]);
+
+  async function handleSave(data) {
+    if (data.id) {
+      // Edit existing — optimistic update first
+      setTrips(prev => prev.map(t => t.id === data.id ? { ...t, ...data } : t));
+      updateTrip(householdId, data.id, data).catch(err => {
+        console.error('update trip failed:', err);
+        // onSnapshot will self-correct
+      });
+    } else {
+      // New trip — Firestore write; onSnapshot will add to state
+      addTrip(householdId, data).catch(err => {
+        console.error('add trip failed:', err);
+      });
+    }
     setSheet(null);
   }
 
-  function handleDelete(id) {
-    persist(trips.filter(t => t.id !== id));
+  async function handleDelete(id) {
+    // Optimistic removal
+    setTrips(prev => prev.filter(t => t.id !== id));
+    deleteTrip(householdId, id).catch(err => {
+      console.error('delete trip failed:', err);
+    });
     setSheet(null);
   }
 
@@ -890,5 +913,13 @@ function ExploringApp() {
   );
 }
 
+function ExploringRoot() {
+  return (
+    <ExAuthProvider>
+      <ExploringApp />
+    </ExAuthProvider>
+  );
+}
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<ExploringApp />);
+root.render(<ExploringRoot />);
