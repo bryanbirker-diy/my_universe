@@ -144,21 +144,17 @@
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
 
-    async function handleSignIn() {
+    function handleSignIn() {
+      // Always redirect — popups are blocked by browsers when called from
+      // Babel-compiled async functions. Redirect works everywhere and is
+      // the correct pattern for a PWA on iPhone.
       setLoading(true); setErr('');
-      try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-        if (isMobile) {
-          await fbAuth.signInWithRedirect(provider);
-        } else {
-          await fbAuth.signInWithPopup(provider);
-        }
-      } catch (e) {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      fbAuth.signInWithRedirect(provider).catch(e => {
         console.error('sign-in error', e);
-        setErr('Sign-in failed. Try again.');
+        setErr('Sign-in failed: ' + (e.message || e.code));
         setLoading(false);
-      }
+      });
     }
 
     // Clock tick marks
