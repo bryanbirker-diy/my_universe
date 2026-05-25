@@ -31,6 +31,141 @@ function Nav({ view, setView, onAddRecipe }) {
   );
 }
 
+// ── DateField ─────────────────────────────────────────────────
+const DOW_SHORT  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MON_SHORT  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAY_LETTER = ['M','T','W','T','F','S','S'];
+
+function fmtDateDisplay(iso) {
+  if (!iso) return '';
+  const [,m,d] = iso.split('-').map(Number);
+  const dow = new Date(iso + 'T00:00:00').getDay();
+  return `${DOW_SHORT[dow]} · ${MON_SHORT[m-1]} ${d}`;
+}
+
+function DateField({ label, value, onChange, min }) {
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.1em',
+        textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 5 }}>
+        {label}
+      </div>
+      <div style={{ position: 'relative' }}>
+        {/* Styled display layer */}
+        <div style={{
+          border: '1.5px solid var(--rule)',
+          borderRadius: '6px 8px 5px 7px',
+          padding: '11px 14px',
+          background: 'rgba(255,255,255,0.65)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          fontFamily: 'var(--pen)', fontSize: 15,
+          color: value ? 'var(--ink)' : 'var(--ink-fade)',
+          pointerEvents: 'none',
+          userSelect: 'none',
+        }}>
+          <span>{value ? fmtDateDisplay(value) : 'Pick a date…'}</span>
+          {/* Calendar icon */}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.4, flexShrink: 0 }}>
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        {/* Native date input — invisible but tappable on top */}
+        <input type="date" value={value} min={min} onChange={onChange}
+          style={{
+            position: 'absolute', inset: 0, opacity: 0,
+            cursor: 'pointer', width: '100%', height: '100%',
+            fontSize: 16, // prevents iOS zoom
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── CalendarMiniPreview ────────────────────────────────────────
+function CalendarMiniPreview({ start, end }) {
+  const s = new Date(start + 'T00:00:00');
+  const year  = s.getFullYear();
+  const month = s.getMonth();
+
+  const firstDOW      = new Date(year, month, 1).getDay();
+  const adjustedFirst = (firstDOW + 6) % 7; // Mon=0
+  const daysInMonth   = new Date(year, month + 1, 0).getDate();
+
+  const cells = [];
+  for (let i = 0; i < adjustedFirst; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const inRange = iso >= start && iso <= end;
+    cells.push({ d, iso, inRange, isStart: iso === start, isEnd: iso === end });
+  }
+
+  const numDays = daysBetween(start, end);
+
+  return (
+    <div style={{
+      border: '1.5px solid var(--rule-soft)',
+      borderRadius: '8px 10px 7px 9px',
+      padding: '14px 14px 12px',
+      background: 'rgba(255,255,255,0.45)',
+      marginTop: 14,
+    }}>
+      <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em',
+        textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 10 }}>
+        Preview
+      </div>
+
+      {/* Day-letter headers — Mon first */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 1, marginBottom: 3 }}>
+        {DAY_LETTER.map((n, i) => (
+          <div key={i} style={{ fontFamily: 'var(--mono)', fontSize: 9, textAlign: 'center',
+            color: 'var(--ink-fade)', textTransform: 'uppercase', padding: '1px 0' }}>{n}</div>
+        ))}
+      </div>
+
+      {/* Calendar cells */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 1 }}>
+        {cells.map((cell, i) => {
+          if (!cell) return <div key={`e${i}`} style={{ height: 26 }} />;
+
+          const isEndpoint = cell.isStart || cell.isEnd;
+          const bg = isEndpoint
+            ? 'var(--clay)'
+            : cell.inRange ? 'rgba(195,145,105,0.22)' : 'transparent';
+          const color  = isEndpoint ? '#fdf6ec'
+            : cell.inRange ? 'var(--brown)' : 'var(--ink-fade)';
+          const br = cell.isStart && cell.isEnd ? '50%'
+            : cell.isStart  ? '50% 0 0 50%'
+            : cell.isEnd    ? '0 50% 50% 0'
+            : cell.inRange  ? '0' : '4px';
+
+          return (
+            <div key={cell.iso} style={{
+              height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--mono)', fontSize: 11,
+              background: bg, color,
+              fontWeight: isEndpoint ? 700 : 400,
+              borderRadius: br,
+            }}>{cell.d}</div>
+          );
+        })}
+      </div>
+
+      <div style={{
+        fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-soft)',
+        marginTop: 10, textAlign: 'center',
+        borderTop: '1px solid var(--rule-soft)', paddingTop: 8,
+      }}>
+        {numDays} day{numDays !== 1 ? 's' : ''} · {numDays * 3} meal slots
+      </div>
+    </div>
+  );
+}
+
 // ── DateRangePicker ───────────────────────────────────────────
 function DateRangePicker({ onStart, existingPlan }) {
   const today = new Date().toISOString().slice(0, 10);
@@ -54,53 +189,62 @@ function DateRangePicker({ onStart, existingPlan }) {
   }, [start, end]);
 
   function tryStart() {
-    if (!start || !end) { setError('Please select a start and end date.'); return; }
-    if (end < start)    { setError('End date must be after start date.'); return; }
+    if (!start || !end) { setError('Pick a start and end date.'); return; }
+    if (end < start)    { setError('End date must be after start.'); return; }
     setError('');
     if (existingPlan) { setShowConfirm(true); } else { onStart(start, end); }
   }
 
   return (
-    <div className="page" style={{ maxWidth: 500, paddingTop: 44 }}>
-      <div className="eyebrow">Start here</div>
-      <div className="h1 underline-sketch" style={{ display: 'inline-block', fontSize: 34, marginTop: 6, marginBottom: 10 }}>
-        Plan some meals.
+    <div style={{ maxWidth: 420, margin: '0 auto', padding: '28px 20px 48px' }}>
+      {/* Heading */}
+      <div className="h1 underline-sketch" style={{ display: 'inline-block', fontSize: 32, marginBottom: 6 }}>
+        Plan a stretch.
       </div>
-      <div className="h-hand" style={{ fontSize: 16, color: 'var(--ink-soft)', lineHeight: 1.35 }}>
-        Pick a range. Fill in meals. Get your grocery list.
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 26 }}>
-        <div className="field">
-          <span className="field-label">Start date</span>
-          <input type="date" className="text-input" value={start}
-            onChange={e => { setStart(e.target.value); setError(''); }} />
-        </div>
-        <div className="field">
-          <span className="field-label">End date</span>
-          <input type="date" className="text-input" value={end} min={start}
-            onChange={e => { setEnd(e.target.value); setError(''); }} />
-        </div>
+      <div style={{ fontFamily: 'var(--pen)', fontSize: 15, color: 'var(--ink-soft)', marginBottom: 22, lineHeight: 1.4 }}>
+        Pick a range. We'll build the calendar.
       </div>
 
-      <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-        {[[3,'3 days'],[7,'1 week'],[14,'2 weeks']].map(([d, label]) => (
-          <button key={d} className="chip" style={{ cursor: 'pointer' }} onClick={() => setQuick(d)}>
+      {/* Date fields */}
+      <DateField label="Start" value={start}
+        onChange={e => { setStart(e.target.value); setError(''); }} />
+      <DateField label="End" value={end} min={start}
+        onChange={e => { setEnd(e.target.value); setError(''); }} />
+
+      {/* Duration presets */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2, marginBottom: 4 }}>
+        {[[7,'1 week'],[3,'3 days'],[14,'2 weeks']].map(([d, label]) => (
+          <button key={d}
+            className={`chip${numDays === d ? ' chip-brown' : ''}`}
+            style={{ cursor: 'pointer', padding: '4px 13px', fontSize: 12 }}
+            onClick={() => setQuick(d)}>
             {label}
           </button>
         ))}
+        <button
+          className="chip"
+          style={{ cursor: 'pointer', padding: '4px 13px', fontSize: 12, borderStyle: 'dashed' }}
+          onClick={() => { setStart(today); setEnd(''); }}>
+          custom
+        </button>
       </div>
 
-      {error && <div className="field-error" style={{ marginTop: 8 }}>{error}</div>}
-
-      {numDays && (
-        <div className="note" style={{ marginTop: 10 }}>
-          {numDays} day{numDays !== 1 ? 's' : ''} · {numDays * 3} meal slots
+      {error && (
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--terracotta)', marginTop: 6 }}>
+          {error}
         </div>
       )}
 
-      <button className="btn btn-olive btn-lg" style={{ marginTop: 22, width: '100%' }} onClick={tryStart}>
-        Let's go →
+      {/* Live calendar preview */}
+      {start && end && end >= start && (
+        <CalendarMiniPreview start={start} end={end} />
+      )}
+
+      {/* CTA */}
+      <button className="btn btn-clay btn-lg"
+        style={{ width: '100%', justifyContent: 'center', marginTop: 20, fontSize: 15 }}
+        onClick={tryStart}>
+        Build our calendar →
       </button>
 
       {existingPlan && (
