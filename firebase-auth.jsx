@@ -114,7 +114,7 @@
 
   // ─── Loading screen ────────────────────────────────────────────────────────
 
-  function LoadingScreen() {
+  function LoadingScreen({ status }) {
     return (
       <div style={{
         minHeight: '100dvh', display: 'flex', flexDirection: 'column',
@@ -133,6 +133,13 @@
           borderRadius: '50%',
           animation: 'ourspin 0.8s linear infinite',
         }} />
+        {status && (
+          <div style={{
+            fontFamily: '"JetBrains Mono", monospace', fontSize: 11,
+            color: 'var(--ink-fade)', maxWidth: 280, textAlign: 'center',
+            lineHeight: 1.5,
+          }}>{status}</div>
+        )}
         <style>{`@keyframes ourspin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -459,24 +466,39 @@
   // ─── AuthProvider ──────────────────────────────────────────────────────────
 
   function AuthProvider({ children }) {
-    const [user, setUser]           = useState(undefined); // undefined = still loading
+    const [user, setUser]           = useState(undefined);
     const [household, setHousehold] = useState(null);
-    const [phase, setPhase]         = useState('loading'); // loading | signin | setup | ready
+    const [phase, setPhase]         = useState('loading');
+    const [loadStatus, setLoadStatus] = useState('');
     const didMigrate = useRef(false);
 
     useEffect(() => {
-      // Consume any pending redirect result (mobile sign-in)
-      fbAuth.getRedirectResult().catch(e => {
-        // Benign: no redirect was pending
-        if (e.code !== 'auth/no-auth-event') console.warn('redirect result:', e.code);
-      });
+      setLoadStatus('Checking sign-in…');
+
+      // Process any pending redirect result first, THEN listen for auth state
+      fbAuth.getRedirectResult()
+        .then(result => {
+          if (result && result.user) {
+            setLoadStatus('Google sign-in received, loading your account…');
+          }
+        })
+        .catch(e => {
+          // auth/no-auth-event is normal (no pending redirect) — ignore it
+          if (e.code !== 'auth/no-auth-event') {
+            console.warn('getRedirectResult error:', e.code, e.message);
+          }
+        });
 
       const unsub = fbAuth.onAuthStateChanged(async (u) => {
+        console.log('onAuthStateChanged:', u ? `signed in as ${u.email}` : 'signed out');
         setUser(u);
         if (!u) { setPhase('signin'); return; }
 
+        setLoadStatus(`Signed in as ${u.email} — loading household…`);
+
         try {
-          // Keep user profile up to date
+          // Save/update user profile
+          setLoadStatus('Saving profile…');
           await db.doc(`users/${u.uid}`).set({
             displayName: u.displayName || '',
             email: u.email || '',
@@ -484,16 +506,17 @@
             lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
           }, { merge: true });
 
+          setLoadStatus('Loading household…');
           const userDoc = await db.doc(`users/${u.uid}`).get();
           const data = userDoc.data();
 
           if (data?.householdId) {
+            setLoadStatus('Found household, loading…');
             const hhDoc = await db.doc(`households/${data.householdId}`).get();
             if (hhDoc.exists) {
               const hh = { id: hhDoc.id, ...hhDoc.data() };
               setHousehold(hh);
 
-              // One-time data migration
               if (!didMigrate.current && !localStorage.getItem('ours_migrated')) {
                 didMigrate.current = true;
                 migrateLocalData(data.householdId).catch(console.warn);
@@ -501,17 +524,17 @@
 
               setPhase('ready');
             } else {
-              // Household was deleted — re-setup
               setPhase('setup');
             }
           } else {
-            // New user — needs to create or join household
+            setLoadStatus('New account — choose or join a household');
             setPhase('setup');
           }
         } catch (e) {
-          console.error('auth state check failed:', e);
-          // Offline? Let them through — modules will handle missing householdId
-          setPhase('setup');
+          console.error('auth setup failed:', e.code, e.message);
+          setLoadStatus(`Setup error: ${e.code || e.message} — proceeding anyway`);
+          // Wait a beat so the user can read the error, then continue
+          setTimeout(() => setPhase('setup'), 2500);
         }
       });
 
@@ -527,7 +550,7 @@
       setPhase('ready');
     }
 
-    if (phase === 'loading') return <LoadingScreen />;
+    if (phase === 'loading') return <LoadingScreen status={loadStatus} />;
     if (phase === 'signin')  return <SignInScreen />;
     if (phase === 'setup')   return (
       <HouseholdSetupScreen user={user} onDone={handleHouseholdDone} />
