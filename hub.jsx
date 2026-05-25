@@ -114,8 +114,8 @@ const PRODUCTS = [
     color: 'var(--terracotta)',
     border: '#5a3a20',
     tagline: 'Trips, weekends, and day adventures.',
-    href: null,
-    live: false,
+    href: 'projects/Exploring/',
+    live: true,
   },
   {
     id: 'goals',
