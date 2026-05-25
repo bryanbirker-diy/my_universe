@@ -69,6 +69,14 @@ function statusInfo(id) {
   return STATUSES.find(s => s.id === id) || STATUSES[0];
 }
 
+function addDays(isoDate, n) {
+  // Returns the last day of a trip: startDate + (n-1) days
+  if (!isoDate || !n) return '';
+  const d = new Date(isoDate + 'T00:00:00');
+  d.setDate(d.getDate() + n - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 function durationLabel(days) {
   if (days === 1) return 'Day trip';
   if (days === 2) return 'Weekend';
@@ -275,10 +283,33 @@ function TripCard({ trip, onClick }) {
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8, alignItems: 'center' }}>
-        {/* Duration */}
-        <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-soft)' }}>
-          ⏱ {durationLabel(trip.duration)}
-        </span>
+        {/* Dates or duration */}
+        {trip.startDate ? (
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-soft)' }}>
+            📅 {fmt(trip.startDate)}{trip.duration > 1 ? ` – ${fmt(addDays(trip.startDate, trip.duration))}` : ''}
+          </span>
+        ) : (
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-soft)' }}>
+            ⏱ {durationLabel(trip.duration)}
+          </span>
+        )}
+
+        {/* Cal link when dates are confirmed */}
+        {trip.startDate && (
+          <a
+            href={googleCalUrl(trip, trip.startDate)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            style={{
+              fontFamily: 'var(--mono)', fontSize: 10,
+              color: 'var(--terracotta)', textDecoration: 'none',
+              padding: '2px 8px',
+              border: '1px solid var(--terracotta)',
+              borderRadius: 10, whiteSpace: 'nowrap',
+            }}
+          >+ Cal</a>
+        )}
 
         {/* Cost */}
         {trip.estimatedCost > 0 && (
@@ -287,13 +318,13 @@ function TripCard({ trip, onClick }) {
           </span>
         )}
 
-        {/* Target date */}
-        {trip.targetDate && (
+        {/* Target date (only show if no startDate set yet) */}
+        {trip.targetDate && !trip.startDate && (
           <span style={{
             fontFamily: 'var(--mono)', fontSize: 11,
             color: urgency ? 'var(--terracotta)' : 'var(--ink-soft)',
           }}>
-            📅 by {fmt(trip.targetDate)}
+            🗓 by {fmt(trip.targetDate)}
             {d !== null && trip.status !== 'done' && (
               <span style={{ opacity: 0.7 }}> · {d < 0 ? 'overdue' : d === 0 ? 'today' : `${d}d`}</span>
             )}
@@ -540,6 +571,7 @@ function CalendarView({ trips }) {
 function TripSheet({ trip, onSave, onDelete, onClose }) {
   const isNew = !trip.id;
   const [name,       setName]       = React.useState(trip.name        || '');
+  const [startDate,  setStartDate]  = React.useState(trip.startDate   || '');
   const [duration,   setDuration]   = React.useState(trip.duration    || 2);
   const [custom,     setCustom]     = React.useState(!DURATION_PRESETS.find(p => p.days === (trip.duration || 2)));
   const [target,     setTarget]     = React.useState(trip.targetDate  || '');
@@ -559,6 +591,7 @@ function TripSheet({ trip, onSave, onDelete, onClose }) {
     const data = {
       name:          name.trim(),
       duration:      Number(duration),
+      startDate:     startDate || '',
       targetDate:    target,
       estimatedCost: cost ? Number(String(cost).replace(/[^0-9.]/g,'')) : 0,
       status,
@@ -606,6 +639,46 @@ function TripSheet({ trip, onSave, onDelete, onClose }) {
             style={{ fontSize: 16 }}
           />
           {error && <div style={{ color: 'var(--terracotta)', fontFamily: 'var(--mono)', fontSize: 11, marginTop: 4 }}>{error}</div>}
+        </div>
+
+        {/* Trip dates */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontFamily: 'var(--hand)', fontSize: 15, color: 'var(--ink-soft)', display: 'block', marginBottom: 5 }}>
+            When are you going?{' '}
+            <span style={{ fontFamily: 'var(--pen)', fontWeight: 400, fontSize: 12, opacity: 0.5 }}>optional</span>
+          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input
+              type="date"
+              className="text-input"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              style={{ fontFamily: 'var(--mono)', flex: 1 }}
+            />
+            {startDate && duration && (
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
+                → {fmt(addDays(startDate, duration))}
+              </span>
+            )}
+          </div>
+          {startDate && (
+            <a
+              href={googleCalUrl({ name: name || 'Our trip', duration: Number(duration), estimatedCost: cost, whosComing, notes, departTime }, startDate)}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                marginTop: 8, padding: '6px 14px',
+                border: '1.5px solid var(--terracotta)',
+                borderRadius: 20,
+                background: 'rgba(168,117,77,0.08)',
+                fontFamily: 'var(--pen)', fontSize: 13,
+                color: 'var(--terracotta)', textDecoration: 'none',
+              }}
+            >
+              📅 Add to Google Calendar
+            </a>
+          )}
         </div>
 
         {/* Duration */}
