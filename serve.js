@@ -34,7 +34,11 @@ http.createServer((req, res) => {
   const ext = path.extname(file);
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); res.end('Not found: ' + urlPath); return; }
-    res.writeHead(200, { 'Content-Type': TYPES[ext] || 'text/plain' });
+    res.writeHead(200, {
+      'Content-Type': TYPES[ext] || 'text/plain',
+      // Prevent service-worker caching during local development
+      'Cache-Control': 'no-store',
+    });
     res.end(data);
   });
 }).listen(PORT, () => {

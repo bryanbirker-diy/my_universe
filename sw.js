@@ -1,7 +1,7 @@
 // sw.js — ours service worker
 // Minimal: caches app shell for offline support + enables PWA install prompt.
 
-const CACHE = 'ours-v1';
+const CACHE = 'ours-v2';
 
 // Files to pre-cache (app shell)
 const PRECACHE = [
