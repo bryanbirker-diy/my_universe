@@ -17,6 +17,28 @@ const DURATION_PRESETS = [
   { label: '2 weeks',  days: 14 },
 ];
 
+// ─── Preference options (stored now, power GCal queries later) ─────────────
+
+const WINDOW_TYPES = [
+  { id: 'long-weekend', label: 'Thu – Sun',    emoji: '🗓', hint: 'Long weekend starts' },
+  { id: 'weekend',      label: 'Sat & Sun',    emoji: '📅', hint: 'Standard weekend' },
+  { id: 'weekdays',     label: 'Weekdays OK',  emoji: '💼', hint: 'Any day of the week' },
+  { id: 'any',          label: 'Anytime',      emoji: '🤷', hint: 'Just find us a window' },
+];
+
+const DEPART_TIMES = [
+  { id: 'morning',   label: 'Morning',   emoji: '🌅', hint: 'Leave before noon' },
+  { id: 'afternoon', label: 'Afternoon', emoji: '☀️',  hint: 'After lunch' },
+  { id: 'flexible',  label: 'Flexible',  emoji: '🤔', hint: "Doesn't matter" },
+];
+
+const WHO_COMING = [
+  { id: 'us',      label: 'Just us',       emoji: '👫' },
+  { id: 'family',  label: 'Family trip',   emoji: '👨‍👩‍👧' },
+  { id: 'friends', label: 'Friends too',   emoji: '🎉' },
+  { id: 'solo',    label: 'Solo',          emoji: '🧍' },
+];
+
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAY_NAMES = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 
@@ -53,56 +75,91 @@ function durationLabel(days) {
 }
 
 // Find upcoming windows of N consecutive days between today and targetDate.
-// Prefers windows that start on Friday or Saturday for short trips.
-function findWindows(targetDateIso, durationDays) {
+// Respects windowType preference — future: replace body with GCal free/busy query.
+// gcalReady flag: when true, skip local logic and use GCal API instead.
+function findWindows(targetDateIso, durationDays, prefs = {}) {
   if (!targetDateIso) return [];
   const today = new Date(); today.setHours(0,0,0,0);
   const end   = new Date(targetDateIso + 'T00:00:00');
   if (end <= today) return [];
 
+  const windowType = prefs.windowType || 'any';
+  const departTime = prefs.departTime || 'flexible'; // stored for GCal, not used locally yet
+
+  // Which day-of-week starts are valid for this preference?
+  // DOW: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+  function isValidStart(dow) {
+    if (windowType === 'long-weekend') {
+      // Thu or Fri starts → run through weekend
+      return durationDays <= 4 ? [4, 5].includes(dow) : [4, 5, 6].includes(dow);
+    }
+    if (windowType === 'weekend') {
+      // Sat start for 1-2 days; Fri start for 3-day
+      return durationDays <= 2 ? dow === 6 : [5, 6].includes(dow);
+    }
+    if (windowType === 'weekdays') {
+      // Mon–Wed start so trip doesn't bleed into next week awkwardly
+      return durationDays <= 5 ? [1, 2, 3].includes(dow) : true;
+    }
+    // 'any' — prefer Fri/Sat/Sun for short, Mon for long
+    if (durationDays <= 3) return [4, 5, 6, 0].includes(dow);
+    if (durationDays <= 7) return dow === 1;
+    return true; // multi-week: any start
+  }
+
   const windows = [];
   const cur = new Date(today);
 
   while (cur < end && windows.length < 5) {
-    const dow = cur.getDay(); // 0=Sun
+    const dow = cur.getDay();
     const windowEnd = new Date(cur);
     windowEnd.setDate(cur.getDate() + durationDays - 1);
 
-    if (windowEnd < end) {
-      const startY = cur.getFullYear(), startM = cur.getMonth(), startD = cur.getDate();
-      const endY   = windowEnd.getFullYear(), endM = windowEnd.getMonth(), endD = windowEnd.getDate();
-
-      // For short trips (≤3 days), prefer Fri/Sat/Sun starts
-      const preferredStart = durationDays <= 3 ? [5, 6, 0].includes(dow) : dow === 1; // Mon for longer
-      const anyStart = durationDays > 5;
-
-      if (preferredStart || anyStart) {
-        const startLabel = `${MONTHS[startM].slice(0,3)} ${startD}`;
-        const endLabel   = durationDays > 1 ? `– ${MONTHS[endM].slice(0,3)} ${endD}` : '';
-        windows.push({
-          start: cur.toISOString().slice(0,10),
-          end:   windowEnd.toISOString().slice(0,10),
-          label: `${startLabel} ${endLabel}`.trim(),
-          daysUntil: Math.round((cur - today) / 86400000),
-        });
-      }
+    if (windowEnd < end && isValidStart(dow)) {
+      const startM = cur.getMonth(), startD = cur.getDate();
+      const endM   = windowEnd.getMonth(), endD = windowEnd.getDate();
+      const startLabel = `${MONTHS[startM].slice(0,3)} ${startD}`;
+      const endLabel   = durationDays > 1 ? `– ${MONTHS[endM].slice(0,3)} ${endD}` : '';
+      windows.push({
+        start:     cur.toISOString().slice(0,10),
+        end:       windowEnd.toISOString().slice(0,10),
+        label:     `${startLabel} ${endLabel}`.trim(),
+        daysUntil: Math.round((cur - today) / 86400000),
+        // departTime stored on window for GCal event creation
+        departTime,
+      });
     }
     cur.setDate(cur.getDate() + 1);
   }
   return windows;
 }
 
-function googleCalUrl(trip, startIso) {
+function googleCalUrl(trip, win) {
+  // win can be a window object {start, departTime} or a plain ISO string
+  const startIso   = typeof win === 'string' ? win : win.start;
+  const departTime = typeof win === 'object'  ? win.departTime : null;
   if (!startIso) return null;
+
   const endDate = new Date(startIso + 'T00:00:00');
   endDate.setDate(endDate.getDate() + trip.duration);
   const fmt8 = d => d.replace(/-/g, '');
   const start8 = fmt8(startIso);
   const end8   = fmt8(endDate.toISOString().slice(0,10));
+
+  const whoLabel = trip.whosComing
+    ? { us: 'Just us', family: 'Family trip', friends: 'Friends too', solo: 'Solo' }[trip.whosComing]
+    : null;
+  const timeLabel = departTime && departTime !== 'flexible'
+    ? `Depart: ${departTime}`
+    : null;
+
   const details = [
-    trip.estimatedCost ? `Estimated cost: $${Number(trip.estimatedCost).toLocaleString()}` : '',
+    trip.estimatedCost ? `Est. cost: $${Number(trip.estimatedCost).toLocaleString()}` : '',
+    whoLabel,
+    timeLabel,
     trip.notes || '',
   ].filter(Boolean).join(' · ');
+
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(trip.name)}&dates=${start8}/${end8}&details=${encodeURIComponent(details)}&sf=true`;
 }
 
@@ -399,7 +456,7 @@ function CalendarView({ trips }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {upcoming.map(trip => {
-              const windows = findWindows(trip.targetDate, trip.duration);
+              const windows = findWindows(trip.targetDate, trip.duration, { windowType: trip.windowType, departTime: trip.departTime });
               return (
                 <div key={trip.id} style={{
                   border: '1.5px solid var(--rule-soft)',
@@ -431,7 +488,7 @@ function CalendarView({ trips }) {
                               <span style={{ color: 'var(--ink-fade)', fontSize: 10, marginLeft: 6 }}>in {w.daysUntil}d</span>
                             </span>
                             <a
-                              href={googleCalUrl(trip, w.start)}
+                              href={googleCalUrl(trip, w)}
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{
@@ -479,15 +536,19 @@ function CalendarView({ trips }) {
 
 function TripSheet({ trip, onSave, onDelete, onClose }) {
   const isNew = !trip.id;
-  const [name,     setName]     = React.useState(trip.name     || '');
-  const [duration, setDuration] = React.useState(trip.duration || 2);
-  const [custom,   setCustom]   = React.useState(!DURATION_PRESETS.find(p => p.days === (trip.duration || 2)));
-  const [target,   setTarget]   = React.useState(trip.targetDate   || '');
-  const [cost,     setCost]     = React.useState(trip.estimatedCost || '');
-  const [status,   setStatus]   = React.useState(trip.status   || 'dreaming');
-  const [notes,    setNotes]    = React.useState(trip.notes    || '');
+  const [name,       setName]       = React.useState(trip.name        || '');
+  const [duration,   setDuration]   = React.useState(trip.duration    || 2);
+  const [custom,     setCustom]     = React.useState(!DURATION_PRESETS.find(p => p.days === (trip.duration || 2)));
+  const [target,     setTarget]     = React.useState(trip.targetDate  || '');
+  const [cost,       setCost]       = React.useState(trip.estimatedCost || '');
+  const [status,     setStatus]     = React.useState(trip.status      || 'dreaming');
+  const [notes,      setNotes]      = React.useState(trip.notes       || '');
+  // Preference fields — used by window finder now, GCal query later
+  const [windowType, setWindowType] = React.useState(trip.windowType  || 'any');
+  const [departTime, setDepartTime] = React.useState(trip.departTime  || 'flexible');
+  const [whosComing, setWhosComing] = React.useState(trip.whosComing  || 'us');
   const [confirmDel, setConfirmDel] = React.useState(false);
-  const [error, setError] = React.useState('');
+  const [error,      setError]      = React.useState('');
 
   function handleSave() {
     if (!name.trim()) { setError('Give this trip a name.'); return; }
@@ -500,6 +561,10 @@ function TripSheet({ trip, onSave, onDelete, onClose }) {
       estimatedCost: cost ? Number(String(cost).replace(/[^0-9.]/g,'')) : 0,
       status,
       notes:         notes.trim(),
+      // Preferences (window finder + future GCal)
+      windowType,
+      departTime,
+      whosComing,
     });
   }
 
@@ -584,6 +649,97 @@ function TripSheet({ trip, onSave, onDelete, onClose }) {
               <span style={{ fontFamily: 'var(--pen)', fontSize: 13, color: 'var(--ink-soft)' }}>days</span>
             </div>
           )}
+        </div>
+
+        {/* ── What are we thinking? ─────────────────────────── */}
+        <div style={{
+          margin: '4px -18px 16px',
+          padding: '16px 18px',
+          background: 'rgba(168,117,77,0.06)',
+          borderTop: '1px solid var(--rule-soft)',
+          borderBottom: '1px solid var(--rule-soft)',
+        }}>
+          <div style={{ fontFamily: 'var(--hand)', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 14 }}>
+            What are we thinking?
+          </div>
+
+          {/* When works? */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 8 }}>
+              When works for us?
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {WINDOW_TYPES.map(opt => (
+                <button key={opt.id} onClick={() => setWindowType(opt.id)} style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '6px 12px',
+                  border: `1.5px solid ${windowType === opt.id ? 'var(--terracotta)' : 'var(--rule)'}`,
+                  borderRadius: 20,
+                  background: windowType === opt.id ? 'rgba(168,117,77,0.14)' : 'rgba(255,255,255,0.5)',
+                  fontFamily: 'var(--pen)', fontSize: 13,
+                  color: windowType === opt.id ? 'var(--terracotta)' : 'var(--ink-soft)',
+                  cursor: 'pointer', transition: 'all .1s',
+                }}>
+                  <span>{opt.emoji}</span> {opt.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-fade)', marginTop: 5 }}>
+              {WINDOW_TYPES.find(o => o.id === windowType)?.hint}
+            </div>
+          </div>
+
+          {/* Leaving when? */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 8 }}>
+              Leaving when?
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {DEPART_TIMES.map(opt => (
+                <button key={opt.id} onClick={() => setDepartTime(opt.id)} style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '6px 12px',
+                  border: `1.5px solid ${departTime === opt.id ? 'var(--terracotta)' : 'var(--rule)'}`,
+                  borderRadius: 20,
+                  background: departTime === opt.id ? 'rgba(168,117,77,0.14)' : 'rgba(255,255,255,0.5)',
+                  fontFamily: 'var(--pen)', fontSize: 13,
+                  color: departTime === opt.id ? 'var(--terracotta)' : 'var(--ink-soft)',
+                  cursor: 'pointer', transition: 'all .1s',
+                }}>
+                  <span>{opt.emoji}</span> {opt.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-fade)', marginTop: 5 }}>
+              Stored for calendar matching — helps when Google Calendar is connected
+            </div>
+          </div>
+
+          {/* Who's coming? */}
+          <div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 8 }}>
+              Who's coming?
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {WHO_COMING.map(opt => (
+                <button key={opt.id} onClick={() => setWhosComing(opt.id)} style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '6px 12px',
+                  border: `1.5px solid ${whosComing === opt.id ? 'var(--terracotta)' : 'var(--rule)'}`,
+                  borderRadius: 20,
+                  background: whosComing === opt.id ? 'rgba(168,117,77,0.14)' : 'rgba(255,255,255,0.5)',
+                  fontFamily: 'var(--pen)', fontSize: 13,
+                  color: whosComing === opt.id ? 'var(--terracotta)' : 'var(--ink-soft)',
+                  cursor: 'pointer', transition: 'all .1s',
+                }}>
+                  <span>{opt.emoji}</span> {opt.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-fade)', marginTop: 5 }}>
+              When Google Calendar connects, we'll check the right calendars automatically
+            </div>
+          </div>
         </div>
 
         {/* Target date */}
