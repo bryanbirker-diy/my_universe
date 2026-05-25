@@ -90,6 +90,23 @@
       }
     } catch (e) { console.warn('trips migration:', e); }
 
+    // Our Home projects
+    try {
+      const homeProjects = JSON.parse(localStorage.getItem('hm_projects') || '[]');
+      if (homeProjects.length > 0) {
+        const batch = db.batch();
+        homeProjects.forEach(p => {
+          const id = p.id || db.collection('_').doc().id;
+          batch.set(
+            db.doc(`households/${householdId}/homeProjects/${id}`),
+            { ...p, _migrated: true },
+            { merge: true }
+          );
+        });
+        writes.push(batch.commit());
+      }
+    } catch (e) { console.warn('home projects migration:', e); }
+
     await Promise.allSettled(writes);
     localStorage.setItem('ours_migrated', '1');
     console.log('ours: local data migrated to Firestore');

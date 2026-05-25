@@ -16,8 +16,8 @@ const DURATION_PRESETS = [
   { label: 'Day trip', days: 1 },
   { label: 'Weekend',  days: 2 },
   { label: '3 days',   days: 3 },
+  { label: '5 days',   days: 5 },
   { label: '1 week',   days: 7 },
-  { label: '2 weeks',  days: 14 },
 ];
 
 // ─── Preference options (stored now, power GCal queries later) ─────────────
@@ -213,7 +213,7 @@ function TabBar({ tab, setTab }) {
       display: 'flex', borderBottom: '1.5px solid var(--rule-soft)',
       padding: '0 16px', background: 'var(--paper)',
     }}>
-      {[['trips','✈ Trips'],['calendar','◻ Calendar']].map(([id, label]) => (
+      {[['trips','→ Trips'],['calendar','◻ Calendar']].map(([id, label]) => (
         <button key={id} onClick={() => setTab(id)} style={{
           padding: '8px 16px',
           border: 'none', background: 'none',
@@ -322,12 +322,12 @@ function TripList({ trips, onEdit, onAdd }) {
   if (!trips.length) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--ink-soft)' }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>✈</div>
+        <div style={{ fontSize: 36, marginBottom: 16, letterSpacing: '0.15em' }}>✈ 🚗 🥾</div>
         <div style={{ fontFamily: 'var(--hand)', fontSize: 22, marginBottom: 8 }}>Where do you want to go?</div>
         <div style={{ fontFamily: 'var(--pen)', fontSize: 14, marginBottom: 24, color: 'var(--ink-fade)' }}>
-          Add your first trip — even if it's just a dream right now.
+          Fly, drive, hike — add your first adventure, even if it's just a dream right now.
         </div>
-        <button className="btn btn-terracotta" onClick={onAdd}>＋ Add a trip</button>
+        <button className="btn btn-terracotta" onClick={onAdd}>＋ Add an adventure</button>
       </div>
     );
   }
@@ -601,7 +601,7 @@ function TripSheet({ trip, onSave, onDelete, onClose }) {
             className="text-input"
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder="Lisbon, Portugal"
+            placeholder="We going to Florida?"
             autoFocus={isNew}
             style={{ fontSize: 16 }}
           />

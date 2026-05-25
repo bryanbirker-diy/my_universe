@@ -116,29 +116,19 @@ const PRODUCTS = [
     letter: 'E',
     color: 'var(--terracotta)',
     border: '#5a3a20',
-    tagline: 'Trips, weekends, and day adventures.',
+    tagline: 'Fly, drive, hike — all your adventures.',
     href: 'projects/Exploring/',
     live: true,
   },
   {
-    id: 'goals',
-    name: 'Our Goals',
-    letter: 'G',
+    id: 'home',
+    name: 'Our Home',
+    letter: 'H',
     color: 'var(--olive)',
     border: '#3e4823',
-    tagline: "What we're chasing, together.",
-    href: null,
-    live: false,
-  },
-  {
-    id: 'budget',
-    name: 'Our Budget',
-    letter: '$',
-    color: 'var(--clay)',
-    border: '#5a3e20',
-    tagline: "What we're spending, and on what.",
-    href: null,
-    live: false,
+    tagline: 'Projects, fixes, and what they\'ll cost.',
+    href: 'projects/Home/',
+    live: true,
   },
 ];
 
@@ -377,8 +367,8 @@ function LeftRail({ activeProduct, household, user }) {
                 <div style={{ fontFamily: 'var(--pen)', fontSize: 13, color: 'var(--ink)', lineHeight: 1.1 }}>{p.name}</div>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--ink-fade)' }}>
                   {p.id === 'pantry' ? 'meals → groceries' :
-                   p.id === 'exploring' ? 'trips & adventures' :
-                   p.id === 'goals' ? "what we're chasing" : "what we're spending"}
+                   p.id === 'exploring' ? 'fly, drive, hike' :
+                   'projects & costs'}
                 </div>
               </div>
             </div>
@@ -517,8 +507,8 @@ function CenterColumn({ stats, user, household }) {
     } else if (stats && stats.filled > 0) {
       pills.push({ icon: '✓', label: 'Meals all set', color: 'var(--olive)', border: '#3e4823', textColor: '#f7f5e6' });
     }
-    pills.push({ icon: '✈', label: 'Plan a trip', color: 'rgba(168,117,77,0.15)', border: 'var(--terracotta)', textColor: 'var(--ink)' });
-    pills.push({ icon: '◎', label: 'Add a goal', color: 'rgba(107,122,74,0.12)', border: 'var(--olive)', textColor: 'var(--ink)' });
+    pills.push({ icon: '🚗', label: 'Plan an adventure', color: 'rgba(168,117,77,0.15)', border: 'var(--terracotta)', textColor: 'var(--ink)' });
+    pills.push({ icon: '🏠', label: 'Home project', color: 'rgba(107,122,74,0.12)', border: 'var(--olive)', textColor: 'var(--ink)' });
     return pills;
   }, [stats]);
 
