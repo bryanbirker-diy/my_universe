@@ -160,16 +160,29 @@
     });
 
     function handleSignIn() {
-      // Always redirect — popups are blocked by browsers when called from
-      // Babel-compiled async functions. Redirect works everywhere and is
-      // the correct pattern for a PWA on iPhone.
       setLoading(true); setErr('');
       const provider = new firebase.auth.GoogleAuthProvider();
-      fbAuth.signInWithRedirect(provider).catch(e => {
-        console.error('sign-in error', e);
-        setErr('Sign-in failed: ' + (e.message || e.code));
-        setLoading(false);
-      });
+
+      // Prefer popup — it works on desktop Chrome and iOS Safari when called
+      // synchronously from a click handler (no async/await before this call).
+      // Redirect is unreliable on iOS PWA standalone mode because ITP clears
+      // localStorage between the redirect and the return, so getRedirectResult()
+      // always comes back empty. Only fall back to redirect if popup is blocked.
+      fbAuth.signInWithPopup(provider)
+        .catch(e => {
+          if (e.code === 'auth/popup-blocked') {
+            // Browser explicitly blocked the popup — fall back to redirect
+            console.warn('popup blocked, falling back to redirect');
+            return fbAuth.signInWithRedirect(provider);
+          }
+          // Any other error (cancelled, network, etc.) — show it
+          throw e;
+        })
+        .catch(e => {
+          console.error('sign-in error', e);
+          setErr('Sign-in failed: ' + (e.message || e.code));
+          setLoading(false);
+        });
     }
 
     // Clock tick marks
