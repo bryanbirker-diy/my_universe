@@ -4,6 +4,13 @@
 function Nav({ view, setView, onAddRecipe }) {
   return (
     <nav className="app-nav">
+      <a href="../../" style={{
+        fontFamily: '"Cormorant Garamond", Garamond, serif',
+        fontWeight: 300, fontSize: 15,
+        color: 'var(--clay)', textDecoration: 'none',
+        letterSpacing: '-0.01em', flexShrink: 0,
+        opacity: 0.75,
+      }} title="Back to ours">← ours</a>
       <div className="brand">
         <span className="brand-mark" />
         Our Pantry
