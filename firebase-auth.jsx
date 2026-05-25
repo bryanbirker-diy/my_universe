@@ -149,7 +149,15 @@
 
   function SignInScreen() {
     const [loading, setLoading] = useState(false);
-    const [err, setErr] = useState('');
+    const [err, setErr] = useState(() => {
+      // Show any error that was stored across the redirect
+      const stored = localStorage.getItem('ours_auth_error');
+      if (stored) {
+        localStorage.removeItem('ours_auth_error');
+        return stored;
+      }
+      return '';
+    });
 
     function handleSignIn() {
       // Always redirect — popups are blocked by browsers when called from
@@ -480,12 +488,21 @@
         .then(result => {
           if (result && result.user) {
             setLoadStatus('Google sign-in received, loading your account…');
+            localStorage.removeItem('ours_auth_error');
+          } else {
+            // No redirect in flight — normal page load
+            localStorage.removeItem('ours_auth_error');
           }
         })
         .catch(e => {
-          // auth/no-auth-event is normal (no pending redirect) — ignore it
-          if (e.code !== 'auth/no-auth-event') {
-            console.warn('getRedirectResult error:', e.code, e.message);
+          if (e.code === 'auth/no-auth-event') {
+            // Totally normal — no redirect was pending
+            localStorage.removeItem('ours_auth_error');
+          } else {
+            // Real error — store it so SignInScreen can display it
+            const msg = `${e.code}: ${e.message}`;
+            console.error('getRedirectResult failed:', msg);
+            localStorage.setItem('ours_auth_error', msg);
           }
         });
 
