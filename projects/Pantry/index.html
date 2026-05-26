@@ -16,33 +16,39 @@
     body { font-family: "Kalam", system-ui, sans-serif; color: var(--ink); }
     * { box-sizing: border-box; }
 
-    /* ── Nav ─────────────────────────────────────────────────── */
-    .app-nav {
+    /* ── Top bar ─────────────────────────────────────────────── */
+    .app-topbar {
       position: sticky; top: 0; z-index: 50;
       background: var(--paper);
       border-bottom: 1.5px solid var(--rule);
       display: flex; align-items: center;
       padding: 10px 18px; gap: 12px;
-      flex-wrap: wrap;
     }
-    .nav-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
-    .nav-tab {
-      padding: 4px 14px;
-      border: 1.5px solid transparent;
-      border-radius: 20px;
-      background: transparent;
-      font-family: var(--pen);
-      font-size: 14px;
-      cursor: pointer;
-      color: var(--ink-fade);
-      transition: all .12s;
-      white-space: nowrap;
+
+    /* ── Bottom nav ──────────────────────────────────────────── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      background: var(--paper);
+      border-top: 1.5px solid var(--rule);
+      display: flex; justify-content: space-around;
+      padding: 8px 8px 16px;
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
     }
-    .nav-tab.active { border-color: var(--ink); color: var(--ink); background: rgba(255,255,255,0.7); }
-    .nav-tab:hover:not(.active) { color: var(--ink-soft); }
+    .bottom-tab {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 4px 12px;
+      border: none; background: none; cursor: pointer;
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--ink-fade);
+      transition: color .12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tab-icon { font-size: 20px; line-height: 1; transition: transform .12s; }
+    .bottom-tab.active { color: var(--brown); }
+    .bottom-tab.active .tab-icon { transform: scale(1.1); }
 
     /* ── Page layout ─────────────────────────────────────────── */
-    .page { max-width: 860px; margin: 0 auto; padding: 28px 18px 80px; }
+    .page { max-width: 860px; margin: 0 auto; padding: 28px 18px 110px; }
 
     /* ── Modal ───────────────────────────────────────────────── */
     .modal-backdrop {
@@ -182,6 +188,41 @@
     .slot-sides { font-size: 10px; color: var(--ink-soft); font-family: var(--mono); margin-top: 2px; }
     .slot-add { color: var(--ink-fade); font-style: italic; font-size: 12px; margin-top: 3px; }
     .slot-warning { color: var(--terracotta); font-size: 11px; font-family: var(--mono); margin-top: 3px; }
+
+    /* ── Dessert slot row ────────────────────────────────────── */
+    .day-slot-dessert {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 12px;
+      border-top: 1px dotted var(--rule-soft);
+      cursor: pointer;
+      background: rgba(255,255,255,0.15);
+      transition: background .1s;
+      min-height: 30px;
+    }
+    .day-slot-dessert:hover { background: rgba(195,145,105,0.08); }
+    .day-slot-dessert.filled { background: rgba(195,145,105,0.12); }
+
+    /* ── Pantry sections ─────────────────────────────────────── */
+    .pantry-section {
+      border: 1.5px solid var(--rule-soft);
+      border-radius: 8px 10px 6px 9px;
+      margin-bottom: 14px;
+      background: rgba(255,255,255,0.45);
+      overflow: hidden;
+    }
+    .pantry-section-header {
+      padding: 10px 14px;
+      border-bottom: 1.5px solid var(--rule-soft);
+      background: rgba(255,255,255,0.3);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .pantry-item {
+      display: flex; gap: 8px; align-items: center;
+      padding: 8px 14px;
+      border-bottom: 1px dotted var(--rule-soft);
+    }
+    .pantry-item:last-child { border-bottom: none; }
+    .pantry-item:hover { background: rgba(0,0,0,0.02); }
   </style>
 </head>
 <body>
