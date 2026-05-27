@@ -26,9 +26,9 @@ function clearPlan() {
 function getPantry() {
   try {
     return JSON.parse(localStorage.getItem(PANTRY_KEY)) ||
-      { staples: [], onHand: [], runningLow: [] };
+      { staples: [], onHand: [], extras: [] };
   }
-  catch { return { staples: [], onHand: [], runningLow: [] }; }
+  catch { return { staples: [], onHand: [], extras: [] }; }
 }
 function savePantry(pantry) {
   localStorage.setItem(PANTRY_KEY, JSON.stringify(pantry));
@@ -54,15 +54,14 @@ function buildSlots(startDate, endDate) {
   return slots;
 }
 
-// Returns [{name, usedIn: string[], runningLow?: true}] sorted alphabetically.
-// pantry: { staples: string[], onHand: string[], runningLow: string[] }
-//   - staples: permanently excluded (never on the list)
-//   - onHand: excluded this session (cleared on new plan)
-//   - runningLow: appended to list regardless of recipes
+// Returns [{name, usedIn: string[], extra?: true}] sorted alphabetically.
+// pantry: { staples: string[], onHand: string[], extras: string[] }
+//   - staples: permanently excluded from recipe-ingredient auto-generation
+//   - onHand:  handled at display level (checked-off items); NOT filtered here
+//   - extras:  manually added to grocery list regardless of recipes
 function generateGroceryList(plan, recipes, pantry = {}) {
   if (!plan) return [];
-  const staples = new Set((pantry.staples  || []).map(s => s.trim().toLowerCase()));
-  const onHand  = new Set((pantry.onHand   || []).map(s => s.trim().toLowerCase()));
+  const staples = new Set((pantry.staples || []).map(s => s.trim().toLowerCase()));
   const recipeMap = Object.fromEntries(recipes.map(r => [r.id, r]));
   const seen = new Map(); // normalised key -> { name, usedIn: Set }
 
@@ -72,8 +71,7 @@ function generateGroceryList(plan, recipes, pantry = {}) {
     if (!recipe) continue;
     for (const ing of (recipe.ingredients || [])) {
       const key = ing.trim().toLowerCase();
-      if (!key) continue;
-      if (staples.has(key) || onHand.has(key)) continue; // excluded
+      if (!key || staples.has(key)) continue; // only exclude staples
       if (!seen.has(key)) seen.set(key, { name: ing.trim(), usedIn: new Set() });
       seen.get(key).usedIn.add(recipe.main_dish_name);
     }
@@ -83,13 +81,12 @@ function generateGroceryList(plan, recipes, pantry = {}) {
     .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
     .map(v => ({ name: v.name, usedIn: [...v.usedIn] }));
 
-  // Append runningLow items not already in list from recipes
-  for (const item of (pantry.runningLow || [])) {
+  // Append extras (manual additions) not already from a recipe
+  for (const item of (pantry.extras || [])) {
     const trimmed = item.trim();
     const key = trimmed.toLowerCase();
-    if (!key) continue;
-    if (seen.has(key)) continue; // recipe ingredient already covers it
-    list.push({ name: trimmed, usedIn: [], runningLow: true });
+    if (!key || seen.has(key)) continue;
+    list.push({ name: trimmed, usedIn: [], extra: true });
   }
 
   return list;
@@ -145,7 +142,7 @@ function subscribePantry(householdId, onUpdate) {
     snap => {
       const pantry = snap.exists
         ? snap.data()
-        : { staples: [], onHand: [], runningLow: [] };
+        : { staples: [], onHand: [], extras: [] };
       savePantry(pantry);
       onUpdate(pantry);
     },

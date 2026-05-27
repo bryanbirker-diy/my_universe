@@ -17,18 +17,17 @@ function TopBar({ onAddRecipe }) {
         <span className="brand-mark" />
         Our Pantry
       </div>
-      <button className="btn btn-clay btn-sm" onClick={onAddRecipe}
-        style={{ flexShrink: 0 }}>
+      <button className="btn btn-clay btn-sm" onClick={onAddRecipe} style={{ flexShrink: 0 }}>
         ＋ Recipe
       </button>
     </header>
   );
 }
 
-// ── BottomNav ─────────────────────────────────────────────────
+// ── BottomNav (pill style) ────────────────────────────────────
 const TABS = [
   { id: 'plan',    label: 'Plan',    icon: '📅' },
-  { id: 'recipes', label: 'Recipes', icon: '🍲' },
+  { id: 'recipes', label: 'Recipe',  icon: '🍲' },
   { id: 'grocery', label: 'Grocery', icon: '🛒' },
   { id: 'pantry',  label: 'Pantry',  icon: '🌿' },
 ];
@@ -106,7 +105,7 @@ function CalendarMiniPreview({ start, end }) {
   const month = s.getMonth();
 
   const firstDOW      = new Date(year, month, 1).getDay();
-  const adjustedFirst = (firstDOW + 6) % 7; // Mon=0
+  const adjustedFirst = (firstDOW + 6) % 7;
   const daysInMonth   = new Date(year, month + 1, 0).getDate();
 
   const cells = [];
@@ -131,14 +130,12 @@ function CalendarMiniPreview({ start, end }) {
         textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 10 }}>
         Preview
       </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 1, marginBottom: 3 }}>
         {DAY_LETTER.map((n, i) => (
           <div key={i} style={{ fontFamily: 'var(--mono)', fontSize: 9, textAlign: 'center',
             color: 'var(--ink-fade)', textTransform: 'uppercase', padding: '1px 0' }}>{n}</div>
         ))}
       </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 1 }}>
         {cells.map((cell, i) => {
           if (!cell) return <div key={`e${i}`} style={{ height: 26 }} />;
@@ -146,8 +143,7 @@ function CalendarMiniPreview({ start, end }) {
           const bg    = isEndpoint ? 'var(--clay)' : cell.inRange ? 'rgba(195,145,105,0.22)' : 'transparent';
           const color = isEndpoint ? '#fdf6ec' : cell.inRange ? 'var(--brown)' : 'var(--ink-fade)';
           const br    = cell.isStart && cell.isEnd ? '50%'
-            : cell.isStart ? '50% 0 0 50%'
-            : cell.isEnd   ? '0 50% 50% 0'
+            : cell.isStart ? '50% 0 0 50%' : cell.isEnd ? '0 50% 50% 0'
             : cell.inRange ? '0' : '4px';
           return (
             <div key={cell.iso} style={{
@@ -158,7 +154,6 @@ function CalendarMiniPreview({ start, end }) {
           );
         })}
       </div>
-
       <div style={{
         fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-soft)',
         marginTop: 10, textAlign: 'center',
@@ -173,9 +168,9 @@ function CalendarMiniPreview({ start, end }) {
 // ── DateRangePicker ───────────────────────────────────────────
 function DateRangePicker({ onStart, existingPlan }) {
   const today = new Date().toISOString().slice(0, 10);
-  const [start, setStart] = React.useState(existingPlan ? existingPlan.start_date : today);
-  const [end,   setEnd]   = React.useState(existingPlan ? existingPlan.end_date   : '');
-  const [error, setError] = React.useState('');
+  const [start, setStart]           = React.useState(existingPlan ? existingPlan.start_date : today);
+  const [end,   setEnd]             = React.useState(existingPlan ? existingPlan.end_date   : '');
+  const [error, setError]           = React.useState('');
   const [showConfirm, setShowConfirm] = React.useState(false);
 
   function setQuick(days) {
@@ -222,8 +217,7 @@ function DateRangePicker({ onStart, existingPlan }) {
             {label}
           </button>
         ))}
-        <button
-          className="chip"
+        <button className="chip"
           style={{ cursor: 'pointer', padding: '4px 13px', fontSize: 12, borderStyle: 'dashed' }}
           onClick={() => { setStart(today); setEnd(''); }}>
           custom
@@ -277,10 +271,10 @@ function DateRangePicker({ onStart, existingPlan }) {
 function SlotSheet({ slot, recipes, plan, onAssign, onClose }) {
   const isDessert = slot.meal_type === 'dessert';
 
-  const [mode,      setMode]      = React.useState(isDessert ? 'pick-recipe' : 'menu');
-  const [search,    setSearch]    = React.useState('');
+  const [mode,       setMode]       = React.useState(isDessert ? 'pick-recipe' : 'menu');
+  const [search,     setSearch]     = React.useState('');
   const [typeFilter, setTypeFilter] = React.useState(isDessert ? 'dessert' : 'meal');
-  const [outLabel,  setOutLabel]  = React.useState('');
+  const [outLabel,   setOutLabel]   = React.useState('');
   const searchRef   = React.useRef(null);
   const outLabelRef = React.useRef(null);
 
@@ -289,7 +283,7 @@ function SlotSheet({ slot, recipes, plan, onAssign, onClose }) {
     if (mode === 'going-out'   && outLabelRef.current) outLabelRef.current.focus();
   }, [mode]);
 
-  // Compute ingredient overlap with already-planned meals for smart sorting
+  // Smart sort: ingredient overlap with already-planned meals
   const planIngredients = React.useMemo(() => {
     const set = new Set();
     if (!plan) return set;
@@ -303,16 +297,14 @@ function SlotSheet({ slot, recipes, plan, onAssign, onClose }) {
   }, [plan, slot, recipes]);
 
   const filtered = React.useMemo(() => {
-    const list = recipes.filter(r => {
-      const rType = r.type || 'meal';
-      return rType === typeFilter &&
-        r.main_dish_name.toLowerCase().includes(search.toLowerCase());
-    });
-    // Sort by ingredient overlap (most shared first), then alphabetically
+    const list = recipes.filter(r =>
+      (r.type || 'meal') === typeFilter &&
+      r.main_dish_name.toLowerCase().includes(search.toLowerCase())
+    );
     list.sort((a, b) => {
-      const aScore = (a.ingredients || []).filter(i => planIngredients.has(i.trim().toLowerCase())).length;
-      const bScore = (b.ingredients || []).filter(i => planIngredients.has(i.trim().toLowerCase())).length;
-      if (bScore !== aScore) return bScore - aScore;
+      const aS = (a.ingredients || []).filter(i => planIngredients.has(i.trim().toLowerCase())).length;
+      const bS = (b.ingredients || []).filter(i => planIngredients.has(i.trim().toLowerCase())).length;
+      if (bS !== aS) return bS - aS;
       return a.main_dish_name.localeCompare(b.main_dish_name);
     });
     return list;
@@ -322,7 +314,6 @@ function SlotSheet({ slot, recipes, plan, onAssign, onClose }) {
     filtered.some(r => (r.ingredients || []).some(i => planIngredients.has(i.trim().toLowerCase())));
 
   const MEAL_FULL = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', dessert: 'Dessert' };
-  const TYPE_FILTER_OPTS = [['meal','Meals'],['dessert','Desserts'],['party_trick','Party Tricks']];
 
   function assign(status, recipe_id = null, label = '') {
     onAssign(slot.id, status, recipe_id, label);
@@ -332,22 +323,32 @@ function SlotSheet({ slot, recipes, plan, onAssign, onClose }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+
+        {/* Shared header — ✕ always right; ← back below it in going-out mode */}
         <div className="spread" style={{ marginBottom: 4 }}>
           <span className="eyebrow">{formatDate(slot.date)} · {MEAL_FULL[slot.meal_type]}</span>
-          <button className="btn btn-sm btn-ghost" onClick={onClose} style={{ padding: '0 8px', fontSize: 16 }}>✕</button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+            <button className="btn btn-sm btn-ghost" onClick={onClose}
+              style={{ padding: '0 8px', fontSize: 16 }}>✕</button>
+            {mode === 'going-out' && (
+              <button className="btn btn-sm btn-ghost" onClick={() => setMode('menu')}
+                style={{ fontSize: 11, padding: '1px 8px' }}>← back</button>
+            )}
+          </div>
         </div>
 
-        {/* ── Main menu (non-dessert slots) ── */}
+        {/* ── Main menu ── */}
         {mode === 'menu' && (
           <>
             <div className="h2 underline-sketch" style={{ display: 'inline-block', marginBottom: 16 }}>
               Fill this slot
             </div>
             <div className="col" style={{ gap: 8 }}>
-              <button className="btn" style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px', gap: 12 }}
+              <button className="btn"
+                style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px', gap: 12 }}
                 onClick={() => {
                   if (recipes.filter(r => (r.type || 'meal') !== 'dessert').length === 0)
-                    alert('No recipes yet — add one from the Recipes tab first.');
+                    alert('No recipes yet — add one from the Recipe tab first.');
                   else { setTypeFilter('meal'); setMode('pick-recipe'); }
                 }}>
                 <span style={{ fontSize: 22 }}>🍲</span>
@@ -400,16 +401,16 @@ function SlotSheet({ slot, recipes, plan, onAssign, onClose }) {
                 </>
               ) : (
                 <>
-                  <button className="btn btn-sm btn-ghost" onClick={() => { setMode('menu'); setSearch(''); }}>← back</button>
+                  <button className="btn btn-sm btn-ghost"
+                    onClick={() => { setMode('menu'); setSearch(''); }}>← back</button>
                   <div className="h3">Choose a recipe</div>
                 </>
               )}
             </div>
 
-            {/* Type filter chips — shown for non-dessert slots */}
             {!isDessert && (
               <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-                {TYPE_FILTER_OPTS.map(([t, l]) => (
+                {[['meal','Meals'],['dessert','Desserts'],['party_trick','Party Tricks']].map(([t, l]) => (
                   <button key={t}
                     className={`chip${typeFilter === t ? ' chip-brown' : ''}`}
                     style={{ cursor: 'pointer', padding: '3px 11px', fontSize: 11 }}
@@ -424,10 +425,9 @@ function SlotSheet({ slot, recipes, plan, onAssign, onClose }) {
               value={search} onChange={e => setSearch(e.target.value)}
               style={{ marginBottom: 8 }} />
 
-            {/* Smart sort indicator */}
             {hasOverlap && (
               <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--brown)',
-                marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4, opacity: 0.85 }}>
+                marginBottom: 8, opacity: 0.85 }}>
                 ✦ Sorted by ingredient overlap with your plan
               </div>
             )}
@@ -436,7 +436,7 @@ function SlotSheet({ slot, recipes, plan, onAssign, onClose }) {
               {filtered.length === 0 && (
                 <div className="note" style={{ textAlign: 'center', padding: '24px 0' }}>
                   {recipes.filter(r => (r.type || 'meal') === typeFilter).length === 0
-                    ? `No ${typeFilter === 'party_trick' ? 'party tricks' : typeFilter + 's'} saved yet — add one in Recipes.`
+                    ? `No ${typeFilter === 'party_trick' ? 'party tricks' : typeFilter + 's'} saved yet.`
                     : 'No recipes match.'}
                 </div>
               )}
@@ -457,9 +457,7 @@ function SlotSheet({ slot, recipes, plan, onAssign, onClose }) {
                         fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--brown)',
                         background: 'rgba(138,111,78,0.12)', padding: '2px 7px',
                         borderRadius: 8, flexShrink: 0, whiteSpace: 'nowrap',
-                      }}>
-                        {score} shared
-                      </span>
+                      }}>{score} shared</span>
                     )}
                   </button>
                 );
@@ -471,16 +469,22 @@ function SlotSheet({ slot, recipes, plan, onAssign, onClose }) {
         {/* ── Going out ── */}
         {mode === 'going-out' && (
           <>
-            <div className="row" style={{ gap: 10, marginBottom: 16 }}>
-              <button className="btn btn-sm btn-ghost" onClick={() => setMode('menu')}>← back</button>
-              <div className="h3">What's the plan?</div>
+            <div className="h2 underline-sketch" style={{ display: 'inline-block', marginBottom: 16 }}>
+              Care to share?
             </div>
             <input ref={outLabelRef} type="text" className="text-input"
               value={outLabel} onChange={e => setOutLabel(e.target.value)}
               placeholder="e.g. Ang's Birthday, Going to Jane's…"
               onKeyDown={e => e.key === 'Enter' && assign('going_out', null, outLabel)}
-              style={{ marginBottom: 14 }} />
-            <div className="note" style={{ marginBottom: 16 }}>Optional — leave blank to just mark as going out.</div>
+              style={{ marginBottom: 12 }} />
+            <div style={{ marginBottom: 18, lineHeight: 1.5 }}>
+              <span style={{ fontFamily: 'var(--pen)', fontSize: 15, fontWeight: 700, color: 'var(--clay)' }}>
+                Optional
+              </span>
+              <span style={{ fontFamily: 'var(--pen)', fontSize: 14, color: 'var(--ink-soft)' }}>
+                {' '}— leave blank to just mark as going out.
+              </span>
+            </div>
             <button className="btn btn-terracotta" style={{ width: '100%' }}
               onClick={() => assign('going_out', null, outLabel)}>
               Set it ✓
@@ -508,7 +512,6 @@ function PlanCalendar({ plan, recipes, onUpdatePlan, onNewPlan, onNavigate }) {
     return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]));
   }, [plan.slots]);
 
-  // Stats — exclude dessert from the main meal count
   const mealSlots   = plan.slots.filter(s => s.meal_type !== 'dessert');
   const total       = mealSlots.length;
   const filledCount = mealSlots.filter(s => s.status !== 'empty').length;
@@ -548,7 +551,6 @@ function PlanCalendar({ plan, recipes, onUpdatePlan, onNewPlan, onNavigate }) {
 
   return (
     <div className="page">
-      {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10,
         justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
         <div>
@@ -559,13 +561,10 @@ function PlanCalendar({ plan, recipes, onUpdatePlan, onNewPlan, onNavigate }) {
         </div>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
           <button className="btn btn-sm btn-olive" onClick={() => setConfirmNewPlan(true)}>Start new plan</button>
-          <button className="btn btn-sm btn-brown" onClick={() => onNavigate('grocery')}>
-            Grocery list →
-          </button>
+          <button className="btn btn-sm btn-brown" onClick={() => onNavigate('grocery')}>Grocery list →</button>
         </div>
       </div>
 
-      {/* Day rows */}
       {days.map(([date, slotsByType]) => {
         const dessertSlot    = slotsByType['dessert'];
         const dessertContent = dessertSlot ? cellContent(dessertSlot) : null;
@@ -578,7 +577,6 @@ function PlanCalendar({ plan, recipes, onUpdatePlan, onNewPlan, onNavigate }) {
               <span className="h3" style={{ fontSize: 15 }}>{formatDate(date)}</span>
               <span className="note">{filledHere}/3</span>
             </div>
-
             <div className="day-slots">
               {['breakfast','lunch','dinner'].map(mt => {
                 const slot = slotsByType[mt];
@@ -602,8 +600,6 @@ function PlanCalendar({ plan, recipes, onUpdatePlan, onNewPlan, onNavigate }) {
                 );
               })}
             </div>
-
-            {/* Dessert row — always present on new plans */}
             {dessertSlot && (
               <div
                 className={`day-slot-dessert${dessertContent && dessertContent.kind !== 'empty' ? ' filled' : ''}`}
@@ -613,9 +609,7 @@ function PlanCalendar({ plan, recipes, onUpdatePlan, onNewPlan, onNavigate }) {
                 {(!dessertContent || dessertContent.kind === 'empty') ? (
                   <span className="slot-add" style={{ marginTop: 0 }}>+ optional</span>
                 ) : (
-                  <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1 }}>
-                    {dessertContent.name}
-                  </span>
+                  <span style={{ fontSize: 13, color: 'var(--ink)' }}>{dessertContent.name}</span>
                 )}
               </div>
             )}
@@ -706,7 +700,6 @@ function RecipeForm({ recipe, onSave, onClose }) {
           <button className="btn btn-sm btn-ghost" onClick={onClose} style={{ padding: '0 8px', fontSize: 16 }}>✕</button>
         </div>
 
-        {/* Step indicator */}
         <div className="row" style={{ gap: 6, marginBottom: 18 }}>
           <div className={`step-dot${step === 1 ? ' active' : ' done'}`}>1</div>
           <div className="step-line" />
@@ -717,15 +710,13 @@ function RecipeForm({ recipe, onSave, onClose }) {
           <>
             <div className="h2 underline-sketch" style={{ display: 'inline-block', marginBottom: 16 }}>Name the meal</div>
 
-            {/* Type selector */}
             <div className="field" style={{ marginBottom: 16 }}>
               <span className="field-label">Type</span>
               <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                 {RECIPE_TYPES.map(t => (
                   <button key={t.value}
                     className={`btn btn-sm${type === t.value ? ' btn-brown' : ''}`}
-                    onClick={() => setType(t.value)}
-                    type="button">
+                    onClick={() => setType(t.value)} type="button">
                     {t.label}
                   </button>
                 ))}
@@ -761,8 +752,7 @@ function RecipeForm({ recipe, onSave, onClose }) {
                 </div>
                 <div className="row" style={{ gap: 6 }}>
                   <input type="text" className="text-input" value={sideInput}
-                    placeholder="e.g. Rice"
-                    style={{ flex: 1 }}
+                    placeholder="e.g. Rice" style={{ flex: 1 }}
                     onChange={e => setSideInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSide(); } }} />
                   <button className="btn btn-sm" onClick={addSide} style={{ flexShrink: 0 }}>Add</button>
@@ -784,17 +774,11 @@ function RecipeForm({ recipe, onSave, onClose }) {
               <div className="h2 underline-sketch" style={{ display: 'inline-block' }}>Ingredients</div>
               <div className="note" style={{ marginTop: 4 }}>one per line — just the name</div>
             </div>
-
             <textarea className="ingredient-textarea"
               value={ingText}
               onChange={e => { setIngText(e.target.value); setErrors({}); }}
-              placeholder={type === 'dessert'
-                ? 'butter\nsugar\nflour\nchocolate chips\neggs'
-                : type === 'party_trick'
-                ? 'cream cheese\nbuffalo sauce\nshredded chicken\nranch'
-                : 'chicken breast\nrice\nbroccoli\ngarlic\nolive oil'} />
+              placeholder={type === 'dessert' ? 'butter\nsugar\nflour\nchocolate chips\neggs' : type === 'party_trick' ? 'cream cheese\nbuffalo sauce\nshredded chicken\nranch' : 'chicken breast\nrice\nbroccoli\ngarlic\nolive oil'} />
             {errors.ing && <div className="field-error" style={{ marginTop: 4 }}>{errors.ing}</div>}
-
             <div className="row" style={{ gap: 8, marginTop: 14 }}>
               <button className="btn" onClick={() => setStep(1)}>← Back</button>
               <button className="btn btn-brown fill" onClick={handleSave}>
@@ -835,7 +819,7 @@ function RecipeList({ recipes, onAdd, onEdit, onDelete, onImport }) {
     const rows = recipes.map(r => {
       const name  = (r.main_dish_name || '').replace(/,/g, ' ');
       const rtype = r.type || 'meal';
-      const sides = (r.side_dishes  || []).join('; ');
+      const sides = (r.side_dishes || []).join('; ');
       const ings  = (r.ingredients  || []).join('; ');
       return `${name},${rtype},${sides},${ings}`;
     });
@@ -857,13 +841,12 @@ function RecipeList({ recipes, onAdd, onEdit, onDelete, onImport }) {
       const dataLines = lines[0].toLowerCase().startsWith('name') ? lines.slice(1) : lines;
       const imported = dataLines.map(line => {
         const parts = line.split(',');
-        // Support old format (name,sides,ingredients) and new (name,type,sides,ingredients)
         const hasType = ['meal','dessert','party_trick'].includes((parts[1] || '').trim());
         const name  = (parts[0] || '').trim();
-        const type  = hasType ? (parts[1] || 'meal').trim() : 'meal';
+        const rtype = hasType ? (parts[1] || 'meal').trim() : 'meal';
         const sides = (hasType ? parts[2] : parts[1] || '').split(';').map(s => s.trim()).filter(Boolean);
         const ings  = (hasType ? parts[3] : parts[2] || '').split(';').map(i => i.trim()).filter(Boolean);
-        return { id: generateId(), main_dish_name: name, type, side_dishes: sides, ingredients: ings };
+        return { id: generateId(), main_dish_name: name, type: rtype, side_dishes: sides, ingredients: ings };
       }).filter(r => r.main_dish_name);
       setImportPreview(imported);
     };
@@ -888,20 +871,15 @@ function RecipeList({ recipes, onAdd, onEdit, onDelete, onImport }) {
       <div className="spread" style={{ marginBottom: 10 }}>
         <div>
           <div className="h2">Recipes</div>
-          {recipes.length > 0 && (
-            <div className="note">{filtered.length} of {recipes.length}</div>
-          )}
+          {recipes.length > 0 && <div className="note">{filtered.length} of {recipes.length}</div>}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {recipes.length > 0 && (
-            <button className="btn btn-sm" onClick={exportToCSV}>↓ Export</button>
-          )}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {recipes.length > 0 && <button className="btn btn-sm" onClick={exportToCSV}>↓ Export</button>}
           <button className="btn btn-sm" onClick={() => fileInputRef.current.click()}>↑ Import</button>
           <button className="btn btn-brown" onClick={onAdd}>＋ Add recipe</button>
         </div>
       </div>
 
-      {/* Search + filter chips */}
       {recipes.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <input type="text" className="text-input" placeholder="Search recipes…"
@@ -914,9 +892,7 @@ function RecipeList({ recipes, onAdd, onEdit, onDelete, onImport }) {
                 style={{ cursor: 'pointer', padding: '3px 11px', fontSize: 11 }}
                 onClick={() => setTypeFilter(t)}>
                 {l}
-                {typeCounts[t] > 0 && (
-                  <span style={{ opacity: 0.6, marginLeft: 3 }}>{typeCounts[t]}</span>
-                )}
+                {typeCounts[t] > 0 && <span style={{ opacity: 0.6, marginLeft: 3 }}>{typeCounts[t]}</span>}
               </button>
             ))}
           </div>
@@ -925,7 +901,6 @@ function RecipeList({ recipes, onAdd, onEdit, onDelete, onImport }) {
 
       <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileChange} />
 
-      {/* Import preview modal */}
       {importPreview && (
         <div className="modal-backdrop" onClick={() => setImportPreview(null)}>
           <div className="modal-sheet" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
@@ -1019,26 +994,31 @@ function RecipeList({ recipes, onAdd, onEdit, onDelete, onImport }) {
 }
 
 // ── GroceryList ───────────────────────────────────────────────
-function GroceryList({ plan, recipes, pantry, onAddStaple }) {
-  const [checked,   setChecked]   = React.useState({});
-  const [copyLabel, setCopyLabel] = React.useState('Prepare list');
+function GroceryList({ plan, recipes, pantry, onToggleOnHand, onAddExtra, onRemoveExtra }) {
+  const [extraInput, setExtraInput] = React.useState('');
+  const [copyLabel,  setCopyLabel]  = React.useState('Prepare list');
 
+  // onHand items are displayed at component level; generateGroceryList only filters staples
   const items = React.useMemo(
     () => generateGroceryList(plan, recipes, pantry),
     [plan, recipes, pantry]
   );
 
-  function toggle(name) { setChecked(p => ({ ...p, [name]: !p[name] })); }
+  const onHandSet = React.useMemo(
+    () => new Set((pantry?.onHand || []).map(s => s.trim().toLowerCase())),
+    [pantry]
+  );
+
+  const needToBuy   = items.filter(i => !onHandSet.has(i.name.toLowerCase()));
+  const alreadyHave = items.filter(i =>  onHandSet.has(i.name.toLowerCase()));
 
   async function copyToClipboard() {
-    const remaining = items.filter(i => !checked[i.name]);
-    if (!remaining.length) return;
-    const text = remaining.map(i => i.name).join('\n');
+    if (!needToBuy.length) return;
+    const text = needToBuy.map(i => i.name).join('\n');
     setCopyLabel('📋 Ready to paste!');
     setTimeout(() => setCopyLabel('Prepare list'), 2500);
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
+    try { await navigator.clipboard.writeText(text); }
+    catch {
       try {
         const ta = document.createElement('textarea');
         ta.value = text;
@@ -1051,44 +1031,60 @@ function GroceryList({ plan, recipes, pantry, onAddStaple }) {
     }
   }
 
+  function handleAddExtra() {
+    const v = extraInput.trim();
+    if (!v) return;
+    onAddExtra(v);
+    setExtraInput('');
+  }
+
+  // Manual add block — shown always
+  const ManualAddRow = (
+    <div style={{ marginTop: 18 }}>
+      <div className="eyebrow" style={{ marginBottom: 8 }}>Add to list</div>
+      <div className="row" style={{ gap: 6 }}>
+        <input type="text" className="text-input"
+          value={extraInput}
+          onChange={e => setExtraInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddExtra(); } }}
+          placeholder="Paper towels, dog food…"
+          style={{ flex: 1, fontSize: 14 }} />
+        <button className="btn btn-sm btn-clay" onClick={handleAddExtra}>Add</button>
+      </div>
+    </div>
+  );
+
+  // No plan — still show manual add + any existing extras
   if (!plan) {
+    const extras = pantry?.extras || [];
     return (
       <div className="page">
-        <div className="h2" style={{ marginBottom: 20 }}>Grocery List</div>
-        <div className="empty-state">
-          <div style={{ fontSize: 48, marginBottom: 14 }}>📋</div>
-          <div className="h3" style={{ marginBottom: 8 }}>No plan yet</div>
-          <div style={{ color: 'var(--ink-soft)' }}>Start a meal plan first, then come back here.</div>
+        <div className="h2" style={{ marginBottom: 6 }}>Grocery List</div>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink-soft)', marginBottom: 20 }}>
+          No meal plan yet. Add items manually, or start a plan to auto-generate from recipes.
         </div>
+        {extras.length > 0 && (
+          <>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>Added manually</div>
+            {extras.map(item => (
+              <div key={item} className="grocery-item">
+                <span className="check" style={{ flexShrink: 0, marginTop: 2 }} />
+                <div style={{ flex: 1 }}><div style={{ fontSize: 15 }}>{item}</div></div>
+                <button onClick={() => onRemoveExtra(item)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--ink-fade)', fontSize: 15, padding: '2px 4px', flexShrink: 0 }}>✕</button>
+              </div>
+            ))}
+            <div className="divider-wavy" style={{ margin: '12px 0' }} />
+          </>
+        )}
+        {ManualAddRow}
       </div>
     );
   }
 
-  const recipeSlots = plan.slots.filter(s => s.status === 'recipe').length;
-
-  if (recipeSlots === 0 && !(pantry?.runningLow?.length)) {
-    return (
-      <div className="page">
-        <div className="h2" style={{ marginBottom: 20 }}>Grocery List</div>
-        <div className="empty-state">
-          <div style={{ fontSize: 48, marginBottom: 14 }}>🤷</div>
-          <div className="h3" style={{ marginBottom: 8 }}>Nothing to buy</div>
-          <div style={{ color: 'var(--ink-soft)', lineHeight: 1.4 }}>
-            Assign a recipe to at least one slot, or add items to Running Low in Pantry.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const unchecked    = items.filter(i => !checked[i.name]);
-  const checkedItems = items.filter(i =>  checked[i.name]);
   const numDays      = daysBetween(plan.start_date, plan.end_date);
-
-  // Pantry stats
-  const staplesCount  = pantry?.staples?.length  || 0;
-  const onHandCount   = pantry?.onHand?.length   || 0;
-  const runningLowCount = items.filter(i => i.runningLow).length;
+  const staplesCount = pantry?.staples?.length || 0;
 
   return (
     <div className="page">
@@ -1096,75 +1092,68 @@ function GroceryList({ plan, recipes, pantry, onAddStaple }) {
         <div>
           <div className="h2">Grocery List</div>
           <div className="note">
-            {formatDate(plan.start_date)} – {formatDate(plan.end_date)} · {numDays} day{numDays !== 1 ? 's' : ''} · {items.length} item{items.length !== 1 ? 's' : ''}
+            {formatDate(plan.start_date)} – {formatDate(plan.end_date)} · {numDays} day{numDays !== 1 ? 's' : ''} · {needToBuy.length} to buy
           </div>
         </div>
-        <button className="btn btn-sm" onClick={copyToClipboard}>{copyLabel}</button>
+        <button className="btn btn-sm" onClick={copyToClipboard}
+          style={{ opacity: needToBuy.length ? 1 : 0.4 }}>
+          {copyLabel}
+        </button>
       </div>
 
-      {/* Pantry summary chips */}
-      {(staplesCount > 0 || onHandCount > 0 || runningLowCount > 0) && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, marginBottom: 4 }}>
-          {staplesCount > 0 && (
-            <span className="chip" style={{ fontSize: 10 }}>
-              ⭐ {staplesCount} staple{staplesCount !== 1 ? 's' : ''} hidden
-            </span>
-          )}
-          {onHandCount > 0 && (
-            <span className="chip" style={{ fontSize: 10 }}>
-              ✅ {onHandCount} on hand hidden
-            </span>
-          )}
-          {runningLowCount > 0 && (
-            <span className="chip chip-terracotta" style={{ fontSize: 10 }}>
-              🔔 {runningLowCount} running low added
-            </span>
-          )}
+      {staplesCount > 0 && (
+        <div style={{ marginTop: 6, marginBottom: 2 }}>
+          <span className="chip" style={{ fontSize: 10 }}>
+            ⭐ {staplesCount} staple{staplesCount !== 1 ? 's' : ''} hidden
+          </span>
         </div>
       )}
 
       <div style={{ fontSize: 12, color: 'var(--brown)', fontFamily: 'var(--mono)', marginTop: 8, marginBottom: 6 }}>
-        Check off what you have · ☆ to save as a staple · copy the rest to your shopping app.
+        Tap to mark as already have · copy the rest to your shopping app.
       </div>
 
-      <div className="divider-wavy" style={{ margin: '8px 0 16px' }} />
+      <div className="divider-wavy" style={{ margin: '8px 0 14px' }} />
 
-      {/* Unchecked items */}
-      {unchecked.map(item => (
-        <div key={item.name} className="grocery-item" onClick={() => toggle(item.name)}>
+      {needToBuy.length === 0 && alreadyHave.length === 0 && (
+        <div className="note" style={{ textAlign: 'center', padding: '20px 0' }}>
+          No items yet — assign recipes to your plan or add items below.
+        </div>
+      )}
+
+      {/* Need to buy */}
+      {needToBuy.map(item => (
+        <div key={item.name} className="grocery-item" onClick={() => onToggleOnHand(item.name)}>
           <span className="check" style={{ flexShrink: 0, marginTop: 2 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15 }}>{item.name}</div>
             {item.usedIn.length > 0 && (
               <div className="note" style={{ marginTop: 1 }}>used in: {item.usedIn.join(', ')}</div>
             )}
-            {item.runningLow && (
-              <div className="note" style={{ marginTop: 1, color: 'var(--terracotta)' }}>🔔 running low</div>
+            {item.extra && (
+              <div className="note" style={{ marginTop: 1, color: 'var(--terracotta)' }}>added manually</div>
             )}
           </div>
-          {!item.runningLow && onAddStaple && (
-            <button
-              title="Save as staple — never add to grocery list again"
-              onClick={e => { e.stopPropagation(); onAddStaple(item.name); }}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--ink-fade)', fontSize: 17, padding: '2px 4px',
-                flexShrink: 0, lineHeight: 1, transition: 'color .1s',
-              }}
-              onMouseEnter={e => e.target.style.color = 'var(--clay)'}
-              onMouseLeave={e => e.target.style.color = 'var(--ink-fade)'}>
-              ☆
+          {item.extra && (
+            <button onClick={e => { e.stopPropagation(); onRemoveExtra(item.name); }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--ink-fade)', fontSize: 15, padding: '2px 4px', flexShrink: 0 }}>
+              ✕
             </button>
           )}
         </div>
       ))}
 
-      {/* Checked items */}
-      {checkedItems.length > 0 && (
-        <div style={{ marginTop: 20 }}>
+      {/* Manual add */}
+      {ManualAddRow}
+
+      {/* Already have */}
+      {alreadyHave.length > 0 && (
+        <div style={{ marginTop: 24 }}>
           <div className="eyebrow" style={{ marginBottom: 10 }}>Already have ✓</div>
-          {checkedItems.map(item => (
-            <div key={item.name} className="grocery-item" style={{ opacity: 0.45 }} onClick={() => toggle(item.name)}>
+          {alreadyHave.map(item => (
+            <div key={item.name} className="grocery-item" style={{ opacity: 0.48 }}
+              onClick={() => onToggleOnHand(item.name)}>
               <span className="check checked" style={{ flexShrink: 0, marginTop: 2 }} />
               <span className="scribble" style={{ fontSize: 15 }}>{item.name}</span>
             </div>
@@ -1175,113 +1164,128 @@ function GroceryList({ plan, recipes, pantry, onAddStaple }) {
   );
 }
 
-// ── PantrySection (sub-component) ─────────────────────────────
-function PantrySection({ title, icon, description, accentColor, items, inputValue, onInputChange, onAdd, onRemove }) {
-  function handleAdd() {
-    const v = inputValue.trim();
-    if (!v) return;
-    onAdd(v);
+// ── PantryTab ─────────────────────────────────────────────────
+function PantryTab({ pantry, onUpdatePantry }) {
+  const [staplesInput, setStaplesInput] = React.useState('');
+  const [onHandInput,  setOnHandInput]  = React.useState('');
+
+  const staples = pantry.staples || [];
+  const onHand  = pantry.onHand  || [];
+
+  function addToList(key, value, clearFn) {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const current = pantry[key] || [];
+    if (current.some(i => i.toLowerCase() === trimmed.toLowerCase())) { clearFn(''); return; }
+    onUpdatePantry({ ...pantry, [key]: [...current, trimmed] });
+    clearFn('');
   }
-  return (
-    <div className="pantry-section">
-      <div className="pantry-section-header">
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 18 }}>{icon}</span>
-            <span className="h3" style={{ fontSize: 17 }}>{title}</span>
-            <span className="eyebrow" style={{ marginLeft: 4, opacity: 0.7 }}>{items.length}</span>
-          </div>
-          <div className="note" style={{ marginTop: 3 }}>{description}</div>
-        </div>
-      </div>
 
-      <div>
-        {items.length === 0 && (
-          <div className="note" style={{ padding: '10px 14px', fontStyle: 'italic' }}>None added yet.</div>
-        )}
-        {items.map(item => (
-          <div key={item} className="pantry-item">
-            <span style={{ flex: 1, fontSize: 14 }}>{item}</span>
-            <button onClick={() => onRemove(item)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--ink-fade)', fontSize: 15, padding: '2px 6px', lineHeight: 1 }}
-              title="Remove">
-              ✕
-            </button>
-          </div>
-        ))}
-      </div>
+  function removeFromList(key, item) {
+    onUpdatePantry({ ...pantry, [key]: (pantry[key] || []).filter(i => i !== item) });
+  }
 
+  function promoteToStaple(item) {
+    const key = item.toLowerCase();
+    const newOnHand  = onHand.filter(i => i.toLowerCase() !== key);
+    const newStaples = staples.some(i => i.toLowerCase() === key) ? staples : [...staples, item];
+    onUpdatePantry({ ...pantry, onHand: newOnHand, staples: newStaples });
+  }
+
+  function SectionInput({ value, onChange, onSubmit, placeholder }) {
+    return (
       <div style={{ padding: '8px 14px 10px', borderTop: '1px dotted var(--rule-soft)' }}>
         <div className="row" style={{ gap: 6 }}>
           <input type="text" className="text-input"
-            value={inputValue}
-            onChange={e => onInputChange(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
-            placeholder="Add item…"
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onSubmit(); } }}
+            placeholder={placeholder}
             style={{ flex: 1, fontSize: 13 }} />
-          <button className="btn btn-sm" onClick={handleAdd}>Add</button>
+          <button className="btn btn-sm" onClick={onSubmit}>Add</button>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ── PantryTab ─────────────────────────────────────────────────
-function PantryTab({ pantry, onUpdatePantry }) {
-  const [staplesInput,    setStaplesInput]    = React.useState('');
-  const [onHandInput,     setOnHandInput]     = React.useState('');
-  const [runningLowInput, setRunningLowInput] = React.useState('');
-
-  function addToSection(sectionKey, rawValue, setInput) {
-    const trimmed = rawValue.trim();
-    if (!trimmed) return;
-    const current = pantry[sectionKey] || [];
-    if (current.some(i => i.toLowerCase() === trimmed.toLowerCase())) {
-      setInput('');
-      return;
-    }
-    onUpdatePantry({ ...pantry, [sectionKey]: [...current, trimmed] });
-    setInput('');
-  }
-
-  function removeFromSection(sectionKey, value) {
-    onUpdatePantry({ ...pantry, [sectionKey]: (pantry[sectionKey] || []).filter(i => i !== value) });
+    );
   }
 
   return (
     <div className="page">
       <div className="h2" style={{ marginBottom: 4 }}>Pantry</div>
-      <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink-soft)', marginBottom: 22, lineHeight: 1.6 }}>
-        Control what shows up on your grocery list. Staples are always hidden. On Hand hides items for this plan. Running Low adds to your list even without a recipe.
+      <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink-soft)', marginBottom: 20, lineHeight: 1.6 }}>
+        Staples are always excluded from your grocery list. On Hand tracks what you currently have — check items off your grocery list to fill it automatically.
       </div>
 
-      <PantrySection
-        title="Staples" icon="⭐" accentColor="var(--brown)"
-        description="Always on hand — never added to grocery list"
-        items={pantry.staples || []}
-        inputValue={staplesInput}
-        onInputChange={setStaplesInput}
-        onAdd={v => addToSection('staples', v, setStaplesInput)}
-        onRemove={v => removeFromSection('staples', v)} />
+      {/* Staples */}
+      <div className="pantry-section">
+        <div className="pantry-section-header">
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 17 }}>⭐</span>
+              <span className="h3" style={{ fontSize: 17 }}>Staples</span>
+              <span className="eyebrow" style={{ opacity: 0.65, marginLeft: 2 }}>{staples.length}</span>
+            </div>
+            <div className="note" style={{ marginTop: 2 }}>Always on hand — never added to grocery list</div>
+          </div>
+        </div>
+        <div>
+          {staples.length === 0 && (
+            <div className="note" style={{ padding: '10px 14px', fontStyle: 'italic' }}>
+              None yet. Add things like salt, olive oil, butter.
+            </div>
+          )}
+          {staples.map(item => (
+            <div key={item} className="pantry-item">
+              <span style={{ flex: 1, fontSize: 14 }}>{item}</span>
+              <button onClick={() => removeFromList('staples', item)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--ink-fade)', fontSize: 15, padding: '2px 6px', lineHeight: 1 }}>✕</button>
+            </div>
+          ))}
+        </div>
+        <SectionInput
+          value={staplesInput} onChange={setStaplesInput}
+          onSubmit={() => addToList('staples', staplesInput, setStaplesInput)}
+          placeholder="e.g. olive oil, salt, butter…" />
+      </div>
 
-      <PantrySection
-        title="On Hand" icon="✅" accentColor="var(--olive)"
-        description="Have it this week — excluded from this grocery list, cleared on new plan"
-        items={pantry.onHand || []}
-        inputValue={onHandInput}
-        onInputChange={setOnHandInput}
-        onAdd={v => addToSection('onHand', v, setOnHandInput)}
-        onRemove={v => removeFromSection('onHand', v)} />
-
-      <PantrySection
-        title="Running Low" icon="🔔" accentColor="var(--terracotta)"
-        description="Need to grab — appended to your grocery list regardless of recipes"
-        items={pantry.runningLow || []}
-        inputValue={runningLowInput}
-        onInputChange={setRunningLowInput}
-        onAdd={v => addToSection('runningLow', v, setRunningLowInput)}
-        onRemove={v => removeFromSection('runningLow', v)} />
+      {/* On Hand */}
+      <div className="pantry-section">
+        <div className="pantry-section-header">
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 17 }}>✅</span>
+              <span className="h3" style={{ fontSize: 17 }}>On Hand</span>
+              <span className="eyebrow" style={{ opacity: 0.65, marginLeft: 2 }}>{onHand.length}</span>
+            </div>
+            <div className="note" style={{ marginTop: 2 }}>Currently have it · cleared when you start a new plan</div>
+          </div>
+        </div>
+        <div>
+          {onHand.length === 0 && (
+            <div className="note" style={{ padding: '10px 14px', fontStyle: 'italic' }}>
+              Check items off your grocery list to mark them as on hand.
+            </div>
+          )}
+          {onHand.map(item => (
+            <div key={item} className="pantry-item">
+              <span style={{ flex: 1, fontSize: 14 }}>{item}</span>
+              <button onClick={() => promoteToStaple(item)}
+                className="btn btn-sm"
+                style={{ fontSize: 10, padding: '2px 8px', marginRight: 4, color: 'var(--brown)', flexShrink: 0 }}
+                title="Save as a staple — always on hand">
+                → Staple
+              </button>
+              <button onClick={() => removeFromList('onHand', item)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--ink-fade)', fontSize: 15, padding: '2px 6px', lineHeight: 1, flexShrink: 0 }}>✕</button>
+            </div>
+          ))}
+        </div>
+        <SectionInput
+          value={onHandInput} onChange={setOnHandInput}
+          onSubmit={() => addToList('onHand', onHandInput, setOnHandInput)}
+          placeholder="Add something you have on hand…" />
+      </div>
     </div>
   );
 }
@@ -1299,7 +1303,6 @@ function App() {
   const [recipeFormOpen, setRecipeFormOpen] = React.useState(false);
   const [editingRecipe,  setEditingRecipe]  = React.useState(null);
 
-  // Real-time subscriptions — kick in once we have a householdId
   React.useEffect(() => {
     if (!householdId) return;
     const unsubR  = subscribeRecipes(householdId, setRecipes);
@@ -1308,16 +1311,11 @@ function App() {
     return () => { unsubR(); unsubP(); unsubPa(); };
   }, [householdId]);
 
-  // ── Recipes CRUD ────────────────────────────────────────────
-  function updateRecipes(updated) {
-    saveRecipes(updated);
-    setRecipes(updated);
-  }
+  // ── Recipes ─────────────────────────────────────────────────
+  function updateRecipes(updated) { saveRecipes(updated); setRecipes(updated); }
 
   async function handleSaveRecipe(r) {
-    const updated = editingRecipe
-      ? recipes.map(x => x.id === r.id ? r : x)
-      : [...recipes, r];
+    const updated = editingRecipe ? recipes.map(x => x.id === r.id ? r : x) : [...recipes, r];
     updateRecipes(updated);
     setRecipeFormOpen(false);
     setEditingRecipe(null);
@@ -1325,41 +1323,55 @@ function App() {
   }
 
   async function handleDeleteRecipe(id) {
-    const updated = recipes.filter(r => r.id !== id);
-    updateRecipes(updated);
+    updateRecipes(recipes.filter(r => r.id !== id));
     deleteRecipeFirestore(householdId, id).catch(console.error);
   }
 
-  // ── Plan CRUD ───────────────────────────────────────────────
+  // ── Plan ────────────────────────────────────────────────────
   function updatePlan(updated) {
     if (updated) savePlan(updated); else clearPlan();
     setPlan(updated);
     savePlanFirestore(householdId, updated).catch(console.error);
   }
 
-  // ── Pantry CRUD ─────────────────────────────────────────────
+  // ── Pantry ──────────────────────────────────────────────────
   function updatePantry(updated) {
     savePantry(updated);
     setPantry(updated);
     savePantryFirestore(householdId, updated).catch(console.error);
   }
 
-  function handleAddStaple(name) {
+  // Check/uncheck a grocery item → persists to pantry.onHand
+  function handleToggleOnHand(name) {
     const key     = name.trim().toLowerCase();
-    if (!key) return;
-    const current = pantry.staples || [];
-    if (current.some(i => i.toLowerCase() === key)) return; // already a staple
-    updatePantry({ ...pantry, staples: [...current, name.trim()] });
+    const current = pantry.onHand || [];
+    const isOn    = current.some(i => i.toLowerCase() === key);
+    updatePantry({
+      ...pantry,
+      onHand: isOn ? current.filter(i => i.toLowerCase() !== key) : [...current, name.trim()],
+    });
   }
 
-  // ── Shared helpers ──────────────────────────────────────────
+  // Manual grocery list additions (extras)
+  function handleAddExtra(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const current = pantry.extras || [];
+    if (current.some(i => i.toLowerCase() === trimmed.toLowerCase())) return;
+    updatePantry({ ...pantry, extras: [...current, trimmed] });
+  }
+
+  function handleRemoveExtra(name) {
+    updatePantry({ ...pantry, extras: (pantry.extras || []).filter(i => i !== name) });
+  }
+
+  // ── Shared ──────────────────────────────────────────────────
   function openRecipeForm(r = null) { setEditingRecipe(r); setRecipeFormOpen(true); }
 
   function handleStartPlan(start, end, cancel = false) {
     if (cancel) { setNewPlanMode(false); return; }
     updatePlan({ start_date: start, end_date: end, slots: buildSlots(start, end) });
-    // Clear "on hand" items when a new plan starts
-    updatePantry({ ...pantry, onHand: [] });
+    updatePantry({ ...pantry, onHand: [] }); // clear on-hand when plan resets
     setNewPlanMode(false);
     setView('plan');
   }
@@ -1374,8 +1386,7 @@ function App() {
         <DateRangePicker existingPlan={plan} onStart={handleStartPlan} />
       )}
       {view === 'plan' && plan && !newPlanMode && (
-        <PlanCalendar
-          plan={plan} recipes={recipes}
+        <PlanCalendar plan={plan} recipes={recipes}
           onUpdatePlan={updatePlan}
           onNewPlan={() => setNewPlanMode(true)}
           onNavigate={setView} />
@@ -1391,7 +1402,10 @@ function App() {
           }} />
       )}
       {view === 'grocery' && (
-        <GroceryList plan={plan} recipes={recipes} pantry={pantry} onAddStaple={handleAddStaple} />
+        <GroceryList plan={plan} recipes={recipes} pantry={pantry}
+          onToggleOnHand={handleToggleOnHand}
+          onAddExtra={handleAddExtra}
+          onRemoveExtra={handleRemoveExtra} />
       )}
       {view === 'pantry' && (
         <PantryTab pantry={pantry} onUpdatePantry={updatePantry} />
