@@ -244,11 +244,13 @@ function SummaryPill({ icon, label, color, border, textColor }) {
 
 // ─── Bottom tabbar (suite-level) ─────────────────────────────────────────
 
-function BottomTabBar({ active = 'home' }) {
+const NAVIGABLE_TABS = new Set(['home', 'settings']);
+
+function BottomTabBar({ active = 'home', onTabChange }) {
   const tabs = [
-    { id: 'home', label: 'Home', icon: '⌂' },
+    { id: 'home',     label: 'Home',     icon: '⌂' },
     { id: 'calendar', label: 'Calendar', icon: '◻' },
-    { id: 'us', label: 'Us', icon: '◎' },
+    { id: 'us',       label: 'Us',       icon: '◎' },
     { id: 'settings', label: 'Settings', icon: '⚙' },
   ];
   return (
@@ -260,29 +262,39 @@ function BottomTabBar({ active = 'home' }) {
       background: 'var(--paper)',
       zIndex: 20,
     }}>
-      {tabs.map(t => (
-        <div key={t.id} style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-          fontFamily: 'var(--mono)', fontSize: 9,
-          letterSpacing: '0.08em', textTransform: 'uppercase',
-          color: t.id === active ? 'var(--ink)' : 'var(--ink-fade)',
-          cursor: t.id === 'home' ? 'default' : 'default',
-          minWidth: 48,
-        }}>
-          <div style={{
-            width: 22, height: 22,
-            border: `1.5px solid ${t.id === active ? 'var(--ink)' : 'var(--ink-fade)'}`,
-            borderRadius: '50% 55% 45% 52%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 11,
-            background: t.id === active ? 'var(--ink)' : 'transparent',
-            color: t.id === active ? 'var(--paper)' : 'var(--ink-fade)',
-          }}>
-            {t.icon}
+      {tabs.map(t => {
+        const navigable = NAVIGABLE_TABS.has(t.id);
+        const isActive  = t.id === active;
+        return (
+          <div key={t.id}
+            onClick={() => navigable && onTabChange?.(t.id)}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+              fontFamily: 'var(--mono)', fontSize: 9,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: isActive ? 'var(--ink)' : 'var(--ink-fade)',
+              cursor: navigable ? 'pointer' : 'default',
+              opacity: navigable ? 1 : 0.38,
+              minWidth: 48,
+              userSelect: 'none',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <div style={{
+              width: 22, height: 22,
+              border: `1.5px solid ${isActive ? 'var(--ink)' : 'var(--ink-fade)'}`,
+              borderRadius: '50% 55% 45% 52%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11,
+              background: isActive ? 'var(--ink)' : 'transparent',
+              color: isActive ? 'var(--paper)' : 'var(--ink-fade)',
+            }}>
+              {t.icon}
+            </div>
+            {t.label}
           </div>
-          {t.label}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -486,10 +498,176 @@ function RightRail({ stats }) {
   );
 }
 
+// ─── Settings view ───────────────────────────────────────────────────────
+
+function SettingsView({ user, household }) {
+  const [copied, setCopied] = React.useState(false);
+
+  function copyCode() {
+    if (!household?.inviteCode) return;
+    navigator.clipboard.writeText(household.inviteCode).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  }
+
+  const memberProfiles = household?.memberProfiles || {};
+  const memberList     = Object.values(memberProfiles);
+
+  const card = {
+    border: '1.5px solid var(--rule-soft)',
+    borderRadius: '8px 10px 7px 9px',
+    background: 'rgba(255,255,255,0.55)',
+    overflow: 'hidden',
+  };
+  const cardHeader = {
+    padding: '10px 16px',
+    borderBottom: '1.5px solid var(--rule-soft)',
+    background: 'rgba(255,255,255,0.3)',
+    fontFamily: 'var(--mono)', fontSize: 9,
+    letterSpacing: '0.14em', textTransform: 'uppercase',
+    color: 'var(--ink-fade)',
+  };
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: '24px 18px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* Page heading */}
+      <div>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 5 }}>
+          Settings
+        </div>
+        <div style={{ fontFamily: 'var(--hand)', fontWeight: 700, fontSize: 28, color: 'var(--ink)', lineHeight: 1.1 }}>
+          {household?.name || 'Our Household'}
+        </div>
+      </div>
+
+      {/* ── Family code ── */}
+      <div style={card}>
+        <div style={cardHeader}>Family Code</div>
+        <div style={{ padding: '16px 18px' }}>
+          <div style={{ fontFamily: 'var(--pen)', fontSize: 13, color: 'var(--ink-soft)', marginBottom: 14, lineHeight: 1.5 }}>
+            Share this code with anyone who needs to join your household. They'll enter it on the sign-in screen.
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: 30, fontWeight: 600,
+              color: 'var(--terracotta)',
+              letterSpacing: '0.22em',
+              flex: 1,
+            }}>
+              {household?.inviteCode || '——————'}
+            </span>
+            <button
+              onClick={copyCode}
+              style={{
+                background: copied ? 'var(--olive)' : 'var(--terracotta)',
+                color: '#fff', border: 'none',
+                borderRadius: '6px 8px 5px 7px',
+                padding: '9px 18px',
+                fontFamily: 'var(--pen)', fontSize: 13,
+                cursor: 'pointer',
+                transition: 'background 0.2s',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >{copied ? '✓ Copied!' : 'Copy code'}</button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Members ── */}
+      <div style={card}>
+        <div style={cardHeader}>Members</div>
+        {memberList.length > 0 ? memberList.map((m, i) => (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '12px 16px',
+            borderBottom: i < memberList.length - 1 ? '1px dotted var(--rule-soft)' : 'none',
+          }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: '50%',
+              border: '1.5px solid var(--rule-soft)',
+              background: 'rgba(138,111,78,0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--hand)', fontSize: 15, fontWeight: 700,
+              color: 'var(--brown)', flexShrink: 0,
+            }}>
+              {(m.displayName || m.email || '?')[0].toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontFamily: 'var(--pen)', fontSize: 14, color: 'var(--ink)', lineHeight: 1.2 }}>
+                {m.displayName || m.email || 'Unknown'}
+              </div>
+              {m.email && m.displayName && (
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-fade)', marginTop: 1 }}>
+                  {m.email}
+                </div>
+              )}
+            </div>
+          </div>
+        )) : (
+          <div style={{ padding: '16px', fontFamily: 'var(--pen)', fontSize: 13, color: 'var(--ink-fade)', fontStyle: 'italic' }}>
+            No member profiles found
+          </div>
+        )}
+      </div>
+
+      {/* ── Account / sign out ── */}
+      <div style={card}>
+        <div style={cardHeader}>Account</div>
+        <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px dotted var(--rule-soft)' }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: '50%',
+            border: '1.5px solid var(--rule-soft)',
+            background: 'rgba(138,111,78,0.1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'var(--hand)', fontSize: 17, fontWeight: 700,
+            color: 'var(--brown)', flexShrink: 0,
+          }}>
+            {(user?.displayName || user?.email || '?')[0].toUpperCase()}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: 'var(--pen)', fontSize: 14, color: 'var(--ink)', lineHeight: 1.2 }}>
+              {user?.displayName || 'You'}
+            </div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-fade)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.email}
+            </div>
+          </div>
+        </div>
+        <div style={{ padding: '14px 16px' }}>
+          <button
+            onClick={() => fbAuth.signOut()}
+            style={{
+              width: '100%', padding: '10px 14px',
+              border: '1.5px solid var(--rule-soft)',
+              borderRadius: '6px 8px 5px 7px',
+              background: 'none',
+              fontFamily: 'var(--pen)', fontSize: 14,
+              color: 'var(--ink-soft)',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--terracotta)'; e.currentTarget.style.color = 'var(--terracotta)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--rule-soft)'; e.currentTarget.style.color = 'var(--ink-soft)'; }}
+          >
+            <span style={{ fontSize: 15 }}>→</span> Sign out
+          </button>
+        </div>
+      </div>
+
+      {/* bottom breathing room above sticky tab bar */}
+      <div style={{ height: 8 }} />
+    </div>
+  );
+}
+
 // ─── Center column content ────────────────────────────────────────────────
 
 function CenterColumn({ stats, user, household }) {
   const [comingSoon, setComingSoon] = React.useState(null);
+  const [activeTab,  setActiveTab]  = React.useState('home');
 
   function handleCardClick(product) {
     if (product.live && product.href) {
@@ -523,78 +701,87 @@ function CenterColumn({ stats, user, household }) {
       minHeight: '100vh',
       position: 'relative',
     }}>
-      {/* Header area */}
-      <div style={{ padding: '16px 18px 0', position: 'relative', overflow: 'hidden' }}>
-        <ClockWatermark />
-        <OursMark size="md" />
 
-        <div style={{ height: 24 }} />
+      {/* ── Home view ── */}
+      {activeTab === 'home' && <>
+        {/* Header area */}
+        <div style={{ padding: '16px 18px 0', position: 'relative', overflow: 'hidden' }}>
+          <ClockWatermark />
+          <OursMark size="md" />
 
-        <div style={{
-          fontFamily: 'var(--mono)', fontSize: 11,
-          letterSpacing: '0.1em', textTransform: 'uppercase',
-          color: 'var(--ink-fade)', marginBottom: 6,
-        }}>
-          {greeting()}{user ? `, ${user.displayName?.split(' ')[0] || ''}` : ''}
-        </div>
+          <div style={{ height: 24 }} />
 
-        <h1 style={{
-          fontFamily: 'var(--hand)',
-          fontWeight: 700,
-          fontSize: 32,
-          color: 'var(--ink)',
-          margin: 0,
-          lineHeight: 1.1,
-          display: 'inline-block',
-          backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 4'><path d='M0,2 Q15,4 30,2 T60,2' fill='none' stroke='%23a8754d' stroke-width='1.6' stroke-linecap='round'/></svg>\")",
-          backgroundSize: '60px 4px',
-          backgroundRepeat: 'repeat-x',
-          backgroundPosition: '0 100%',
-          paddingBottom: 6,
-        }}>
-          What are we planning?
-        </h1>
-      </div>
-
-      {/* Product cards */}
-      <div style={{ padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
-        {/* Mobile: invite code banner if solo household */}
-        {household?.inviteCode && (household?.memberUids || []).length < 2 && (
-          <InviteCodeBanner household={household} />
-        )}
-        {PRODUCTS.map(p => (
-          <ProductCard
-            key={p.id}
-            product={p}
-            stats={p.id === 'pantry' ? stats : null}
-            onClick={() => handleCardClick(p)}
-          />
-        ))}
-
-        {/* Wavy divider */}
-        <div style={{ margin: '8px 0' }}>
-          <div className="divider-wavy" style={{ opacity: 0.4 }} />
-        </div>
-
-        {/* This week, between us */}
-        <div>
           <div style={{
-            fontFamily: 'var(--mono)', fontSize: 9,
-            letterSpacing: '0.14em', textTransform: 'uppercase',
-            color: 'var(--ink-fade)', marginBottom: 10,
+            fontFamily: 'var(--mono)', fontSize: 11,
+            letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: 'var(--ink-fade)', marginBottom: 6,
           }}>
-            This week, between us
+            {greeting()}{user ? `, ${user.displayName?.split(' ')[0] || ''}` : ''}
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {pillsData.map((pill, i) => (
-              <SummaryPill key={i} {...pill} />
-            ))}
+
+          <h1 style={{
+            fontFamily: 'var(--hand)',
+            fontWeight: 700,
+            fontSize: 32,
+            color: 'var(--ink)',
+            margin: 0,
+            lineHeight: 1.1,
+            display: 'inline-block',
+            backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 4'><path d='M0,2 Q15,4 30,2 T60,2' fill='none' stroke='%23a8754d' stroke-width='1.6' stroke-linecap='round'/></svg>\")",
+            backgroundSize: '60px 4px',
+            backgroundRepeat: 'repeat-x',
+            backgroundPosition: '0 100%',
+            paddingBottom: 6,
+          }}>
+            What are we planning?
+          </h1>
+        </div>
+
+        {/* Product cards */}
+        <div style={{ padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+          {/* Mobile: invite code banner if solo household */}
+          {household?.inviteCode && (household?.memberUids || []).length < 2 && (
+            <InviteCodeBanner household={household} />
+          )}
+          {PRODUCTS.map(p => (
+            <ProductCard
+              key={p.id}
+              product={p}
+              stats={p.id === 'pantry' ? stats : null}
+              onClick={() => handleCardClick(p)}
+            />
+          ))}
+
+          {/* Wavy divider */}
+          <div style={{ margin: '8px 0' }}>
+            <div className="divider-wavy" style={{ opacity: 0.4 }} />
+          </div>
+
+          {/* This week, between us */}
+          <div>
+            <div style={{
+              fontFamily: 'var(--mono)', fontSize: 9,
+              letterSpacing: '0.14em', textTransform: 'uppercase',
+              color: 'var(--ink-fade)', marginBottom: 10,
+            }}>
+              This week, between us
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {pillsData.map((pill, i) => (
+                <SummaryPill key={i} {...pill} />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      </>}
 
-      {/* Coming soon toast */}
-      {comingSoon && (
+      {/* ── Settings view ── */}
+      {activeTab === 'settings' && (
+        <SettingsView user={user} household={household} />
+      )}
+
+      {/* Coming soon toast (home only) */}
+      {comingSoon && activeTab === 'home' && (
         <div style={{
           position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)',
           background: 'var(--ink)', color: 'var(--paper)',
@@ -610,7 +797,7 @@ function CenterColumn({ stats, user, household }) {
       )}
 
       {/* Bottom tabbar */}
-      <BottomTabBar active="home" />
+      <BottomTabBar active={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 }
