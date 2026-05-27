@@ -1164,6 +1164,24 @@ function GroceryList({ plan, recipes, pantry, onToggleOnHand, onAddExtra, onRemo
   );
 }
 
+// ── PantryTab helpers (module-level — must NOT be defined inside PantryTab
+//    or React will unmount/remount them on every keystroke, collapsing the keyboard) ──
+function SectionInput({ value, onChange, onSubmit, placeholder }) {
+  return (
+    <div style={{ padding: '8px 14px 10px', borderTop: '1px dotted var(--rule-soft)' }}>
+      <div className="row" style={{ gap: 6 }}>
+        <input type="text" className="text-input"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onSubmit(); } }}
+          placeholder={placeholder}
+          style={{ flex: 1, fontSize: 13 }} />
+        <button className="btn btn-sm" onClick={onSubmit}>Add</button>
+      </div>
+    </div>
+  );
+}
+
 // ── PantryTab ─────────────────────────────────────────────────
 function PantryTab({ pantry, onUpdatePantry }) {
   const [staplesInput, setStaplesInput] = React.useState('');
@@ -1190,22 +1208,6 @@ function PantryTab({ pantry, onUpdatePantry }) {
     const newOnHand  = onHand.filter(i => i.toLowerCase() !== key);
     const newStaples = staples.some(i => i.toLowerCase() === key) ? staples : [...staples, item];
     onUpdatePantry({ ...pantry, onHand: newOnHand, staples: newStaples });
-  }
-
-  function SectionInput({ value, onChange, onSubmit, placeholder }) {
-    return (
-      <div style={{ padding: '8px 14px 10px', borderTop: '1px dotted var(--rule-soft)' }}>
-        <div className="row" style={{ gap: 6 }}>
-          <input type="text" className="text-input"
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onSubmit(); } }}
-            placeholder={placeholder}
-            style={{ flex: 1, fontSize: 13 }} />
-          <button className="btn btn-sm" onClick={onSubmit}>Add</button>
-        </div>
-      </div>
-    );
   }
 
   return (
