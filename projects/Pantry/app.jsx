@@ -1210,6 +1210,18 @@ function PantryTab({ pantry, onUpdatePantry }) {
     onUpdatePantry({ ...pantry, onHand: newOnHand, staples: newStaples });
   }
 
+  // One-off: push a staple into extras so it appears on the grocery list this time
+  function addStapleToGrocery(item) {
+    const current = pantry.extras || [];
+    if (current.some(i => i.toLowerCase() === item.toLowerCase())) return;
+    onUpdatePantry({ ...pantry, extras: [...current, item.trim()] });
+  }
+
+  const extrasSet = React.useMemo(
+    () => new Set((pantry.extras || []).map(i => i.toLowerCase())),
+    [pantry.extras]
+  );
+
   return (
     <div className="page">
       <div className="h2" style={{ marginBottom: 4 }}>Pantry</div>
@@ -1226,7 +1238,7 @@ function PantryTab({ pantry, onUpdatePantry }) {
               <span className="h3" style={{ fontSize: 17 }}>Staples</span>
               <span className="eyebrow" style={{ opacity: 0.65, marginLeft: 2 }}>{staples.length}</span>
             </div>
-            <div className="note" style={{ marginTop: 2 }}>Always on hand — never added to grocery list</div>
+            <div className="note" style={{ marginTop: 2 }}>Always on hand — tap + List to add one to the grocery list this time</div>
           </div>
         </div>
         <div>
@@ -1235,14 +1247,31 @@ function PantryTab({ pantry, onUpdatePantry }) {
               None yet. Add things like salt, olive oil, butter.
             </div>
           )}
-          {staples.map(item => (
-            <div key={item} className="pantry-item">
-              <span style={{ flex: 1, fontSize: 14 }}>{item}</span>
-              <button onClick={() => removeFromList('staples', item)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--ink-fade)', fontSize: 15, padding: '2px 6px', lineHeight: 1 }}>✕</button>
-            </div>
-          ))}
+          {staples.map(item => {
+            const onList = extrasSet.has(item.toLowerCase());
+            return (
+              <div key={item} className="pantry-item">
+                <span style={{ flex: 1, fontSize: 14 }}>{item}</span>
+                <button
+                  onClick={() => addStapleToGrocery(item)}
+                  className="btn btn-sm"
+                  disabled={onList}
+                  style={{
+                    fontSize: 10, padding: '2px 8px', marginRight: 6, flexShrink: 0,
+                    color:       onList ? 'var(--olive)'     : 'var(--terracotta)',
+                    borderColor: onList ? 'var(--olive)'     : 'var(--terracotta)',
+                    opacity: onList ? 0.65 : 1,
+                    background: onList ? 'rgba(107,122,74,0.08)' : 'transparent',
+                  }}
+                  title={onList ? 'Already on grocery list' : 'Add to grocery list this time'}>
+                  {onList ? '✓ on list' : '+ list'}
+                </button>
+                <button onClick={() => removeFromList('staples', item)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--ink-fade)', fontSize: 15, padding: '2px 6px', lineHeight: 1 }}>✕</button>
+              </div>
+            );
+          })}
         </div>
         <SectionInput
           value={staplesInput} onChange={setStaplesInput}
