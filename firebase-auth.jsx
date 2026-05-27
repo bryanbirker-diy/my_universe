@@ -522,7 +522,17 @@
       const unsub = fbAuth.onAuthStateChanged(async (u) => {
         console.log('onAuthStateChanged:', u ? `signed in as ${u.email}` : 'signed out');
         setUser(u);
-        if (!u) { setPhase('signin'); return; }
+        if (!u) {
+          // Sub-apps (/projects/...) should never show their own sign-in screen.
+          // Redirect unauthenticated users to the hub so sign-in always lands
+          // on the main "What are we planning?" page, not inside a sub-app.
+          if (window.location.pathname.includes('/projects/')) {
+            window.location.href = '/';
+            return;
+          }
+          setPhase('signin');
+          return;
+        }
 
         setLoadStatus(`Signed in as ${u.email} — loading household…`);
 
