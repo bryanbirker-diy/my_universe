@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kid Zone – Choose Your Runner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="select-page">
+
+  <div class="sel-wrap">
+    <a href="index.html" class="back-link">← Menu</a>
+
+    <section class="sel-section">
+      <h2 class="sel-heading">Pick Your Runner</h2>
+      <div class="sel-cards">
+        <div class="sel-card" data-char="bunny">
+          <span class="sel-emoji">🐰</span>
+          <span class="sel-name">Benny Bunny</span>
+          <span class="sel-desc">Fluffy &amp; Fast</span>
+        </div>
+        <div class="sel-card" data-char="bear">
+          <span class="sel-emoji">🐻</span>
+          <span class="sel-name">Bruno Bear</span>
+          <span class="sel-desc">Strong &amp; Brave</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="sel-section">
+      <h2 class="sel-heading">Pick Your Challenge</h2>
+      <div class="sel-cards">
+        <div class="sel-card" data-mode="typing">
+          <span class="sel-emoji">⌨️</span>
+          <span class="sel-name">Typing Sprint</span>
+          <span class="sel-desc">Type words to run!</span>
+        </div>
+        <div class="sel-card" data-mode="math">
+          <span class="sel-emoji">🔢</span>
+          <span class="sel-name">Math Dash</span>
+          <span class="sel-desc">Solve math to run!</span>
+        </div>
+      </div>
+    </section>
+
+    <button class="btn-go" id="btn-go" disabled>GO! ▶</button>
+  </div>
+
+  <script src="select.js"></script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kid Zone – Run!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="game-page">
+
+  <canvas id="game-canvas"></canvas>
+
+  <div id="ui-overlay">
+    <!-- HUD strip at top -->
+    <div id="hud">
+      <span id="hud-level">Level 1</span>
+      <span id="hud-score">⭐ 0</span>
+      <span id="hud-streak">🔥 0 / 10</span>
+    </div>
+
+    <!-- Fills the canvas area -->
+    <div id="ui-spacer"></div>
+
+    <!-- Word / input panel at bottom -->
+    <div id="bottom-panel">
+      <div id="word-boxes"></div>
+      <p id="q-hint"></p>
+      <input id="type-input" type="text"
+        autocomplete="off" autocorrect="off"
+        autocapitalize="off" spellcheck="false"
+        placeholder="type here…">
+    </div>
+  </div>
+
+  <!-- Level-up splash -->
+  <div id="level-flash" class="hidden">
+    <div id="level-flash-text"></div>
+  </div>
+
+  <!-- Game over -->
+  <div id="gameover-screen" class="hidden">
+    <div class="go-box">
+      <div id="go-emoji"></div>
+      <h1>Got Caught!</h1>
+      <p id="go-danger"></p>
+      <div id="go-stats"></div>
+      <div class="go-btns">
+        <button class="go-btn green"  onclick="location.href='select.html'">Play Again 🎮</button>
+        <button class="go-btn purple" onclick="location.href='index.html'">Menu 🏠</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
