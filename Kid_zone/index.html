@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌟 Kid Zone – Run &amp; Learn!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── CHARACTER SELECT ── -->
+  <div id="screen-char" class="screen active">
+    <h1 class="game-title">🌟 Kid Zone 🌟</h1>
+    <p class="screen-sub">Pick your runner!</p>
+    <div class="card-row">
+      <button class="pick-card" data-pick="bunny">
+        <span class="pick-emoji">🐰</span>
+        <span class="pick-name">Benny Bunny</span>
+        <span class="pick-tag">Fluffy &amp; Fast!</span>
+      </button>
+      <button class="pick-card" data-pick="bear">
+        <span class="pick-emoji">🐻</span>
+        <span class="pick-name">Bruno Bear</span>
+        <span class="pick-tag">Strong &amp; Brave!</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── MODE SELECT ── -->
+  <div id="screen-mode" class="screen">
+    <p class="screen-sub" id="mode-greeting"></p>
+    <p class="screen-sub">How will you run?</p>
+    <div class="card-row">
+      <button class="pick-card mode-typing" data-pick="typing">
+        <span class="pick-emoji">⌨️</span>
+        <span class="pick-name">Typing Sprint</span>
+        <span class="pick-tag">Type words to run!</span>
+      </button>
+      <button class="pick-card mode-math" data-pick="math">
+        <span class="pick-emoji">🔢</span>
+        <span class="pick-name">Math Dash</span>
+        <span class="pick-tag">Solve math to run!</span>
+      </button>
+    </div>
+    <button class="btn-link" id="btn-back-char">← Back</button>
+  </div>
+
+  <!-- ── GAME ── -->
+  <div id="screen-game" class="screen">
+    <div id="game-wrap">
+      <!-- HUD -->
+      <div id="hud">
+        <span id="hud-level">Level 1</span>
+        <span id="hud-score">⭐ 0</span>
+        <span id="hud-streak">🔥 0 / 10</span>
+      </div>
+
+      <!-- Scene -->
+      <div id="scene">
+        <div id="sky">
+          <div class="cloud" id="cl1"></div>
+          <div class="cloud" id="cl2"></div>
+          <div class="cloud" id="cl3"></div>
+        </div>
+        <div id="ground-layer"></div>
+        <div id="runner" class="bounce"><span id="runner-emoji">🐰</span></div>
+        <div id="chaser" class="bounce"><span id="chaser-emoji">🦊</span></div>
+      </div>
+
+      <!-- Gap / danger bar -->
+      <div id="gap-bar-wrap">
+        <span class="gap-lbl safe">✅ SAFE</span>
+        <div id="gap-track">
+          <div id="gap-fill"></div>
+        </div>
+        <span class="gap-lbl danger">DANGER! ⚠️</span>
+      </div>
+
+      <!-- Question zone -->
+      <div id="q-zone">
+        <div id="q-display"></div>
+        <p id="q-hint"></p>
+        <input id="q-input" type="text"
+          autocomplete="off" autocorrect="off"
+          autocapitalize="off" spellcheck="false"
+          placeholder="type here…">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GAME OVER ── -->
+  <div id="screen-over" class="screen">
+    <div id="over-emoji"></div>
+    <h1 class="over-title">Got Caught! 😱</h1>
+    <p id="over-flavor"></p>
+    <div id="over-stats"></div>
+    <div class="btn-row">
+      <button class="big-btn green" id="btn-retry">Play Again 🎮</button>
+      <button class="big-btn purple" id="btn-menu">Menu 🏠</button>
+    </div>
+  </div>
+
+  <!-- Level-up splash -->
+  <div id="level-splash" aria-hidden="true">
+    <div id="level-splash-text"></div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
