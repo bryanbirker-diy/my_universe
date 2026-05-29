@@ -62,3 +62,38 @@ async function deleteExpense(householdId, expenseId) {
     await expensesRef(householdId).doc(expenseId).delete();
   }
 }
+
+// ─── Budget (Where It Goes) ───────────────────────────────────────────────
+
+const BUDGET_KEY = 'mn_budget';
+
+function budgetDocRef(householdId) {
+  return db.collection(`households/${householdId}/budget`).doc('default');
+}
+
+function loadBudgetLocal() {
+  try { return JSON.parse(localStorage.getItem(BUDGET_KEY) || '[]'); }
+  catch { return []; }
+}
+function saveBudgetLocal(cats) {
+  localStorage.setItem(BUDGET_KEY, JSON.stringify(cats));
+}
+
+function subscribeBudget(householdId, onUpdate) {
+  if (!householdId) return () => {};
+  return budgetDocRef(householdId).onSnapshot(
+    snap => {
+      const cats = snap.exists ? (snap.data().categories || []) : [];
+      saveBudgetLocal(cats);
+      onUpdate(cats);
+    },
+    err => console.error('budget snapshot error:', err)
+  );
+}
+
+async function saveBudget(householdId, categories) {
+  saveBudgetLocal(categories);
+  if (householdId) {
+    await budgetDocRef(householdId).set({ categories });
+  }
+}
