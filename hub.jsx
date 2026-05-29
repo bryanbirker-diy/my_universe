@@ -130,6 +130,16 @@ const PRODUCTS = [
     href: 'projects/Home/',
     live: true,
   },
+  {
+    id: 'money',
+    name: 'Our Money',
+    letter: '$',
+    color: '#b5892e',
+    border: '#7a5c1a',
+    tagline: 'Subscriptions, bills, and where it goes.',
+    href: 'projects/Money/',
+    live: true,
+  },
 ];
 
 function ProductIcon({ letter, color, border }) {
@@ -380,6 +390,7 @@ function LeftRail({ activeProduct, household, user }) {
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--ink-fade)' }}>
                   {p.id === 'pantry' ? 'meals → groceries' :
                    p.id === 'exploring' ? 'fly, drive, hike' :
+                   p.id === 'money' ? 'bills & subscriptions' :
                    'projects & costs'}
                 </div>
               </div>
