@@ -268,6 +268,38 @@
     );
   }
 
+  // ─── Blocked screen ───────────────────────────────────────────────────────
+
+  function BlockedScreen({ email }) {
+    return (
+      <div style={{
+        minHeight: '100dvh', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        background: '#f5f0e8', fontFamily: 'system-ui, sans-serif',
+        padding: '2rem', textAlign: 'center',
+      }}>
+        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🔒</div>
+        <h2 style={{ margin: '0 0 0.5rem', color: '#3d2b1f', fontSize: '1.4rem' }}>
+          Access restricted
+        </h2>
+        <p style={{ color: '#7a5c47', maxWidth: '320px', lineHeight: 1.5, margin: '0 0 1.5rem' }}>
+          <strong>{email}</strong> hasn't been added yet.
+          Contact Bryan to get access.
+        </p>
+        <button
+          onClick={() => { window.location.reload(); }}
+          style={{
+            background: '#c39169', color: '#fff', border: 'none',
+            borderRadius: '8px', padding: '0.6rem 1.4rem',
+            fontSize: '0.95rem', cursor: 'pointer',
+          }}
+        >
+          Try a different account
+        </button>
+      </div>
+    );
+  }
+
   // ─── Household setup screen ────────────────────────────────────────────────
 
   function HouseholdSetupScreen({ user, onDone }) {
@@ -491,7 +523,8 @@
     const [household, setHousehold] = useState(null);
     const [phase, setPhase]         = useState('loading');
     const [loadStatus, setLoadStatus] = useState('');
-    const didMigrate = useRef(false);
+    const didMigrate      = useRef(false);
+    const blockedEmailRef = useRef(null);
 
     useEffect(() => {
       setLoadStatus('Checking sign-in…');
@@ -523,6 +556,10 @@
         console.log('onAuthStateChanged:', u ? `signed in as ${u.email}` : 'signed out');
         setUser(u);
         if (!u) {
+          if (blockedEmailRef.current) {
+            setPhase('blocked');
+            return;
+          }
           // Sub-apps (/projects/...) should never show their own sign-in screen.
           // Redirect unauthenticated users to the hub so sign-in always lands
           // on the main "What are we planning?" page, not inside a sub-app.
@@ -533,6 +570,19 @@
           setPhase('signin');
           return;
         }
+
+        setLoadStatus(`Signed in as ${u.email} — checking access…`);
+
+        // ── Allowlist check ──────────────────────────────────────────────────
+        // Only emails present in the allowedUsers collection can proceed.
+        // Add/remove access anytime in the Firebase Console without a deploy.
+        const allowed = await db.collection('allowedUsers').doc(u.email).get();
+        if (!allowed.exists) {
+          blockedEmailRef.current = u.email;
+          await fbAuth.signOut();
+          return;
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         setLoadStatus(`Signed in as ${u.email} — loading household…`);
 
@@ -591,6 +641,7 @@
     }
 
     if (phase === 'loading') return <LoadingScreen status={loadStatus} />;
+    if (phase === 'blocked') return <BlockedScreen email={blockedEmailRef.current} />;
     if (phase === 'signin')  return <SignInScreen />;
     if (phase === 'setup')   return (
       <HouseholdSetupScreen user={user} onDone={handleHouseholdDone} />
