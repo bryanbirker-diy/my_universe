@@ -1095,10 +1095,17 @@ function GroceryList({ plan, recipes, pantry, onToggleOnHand, onAddExtra, onRemo
             {formatDate(plan.start_date)} – {formatDate(plan.end_date)} · {numDays} day{numDays !== 1 ? 's' : ''} · {needToBuy.length} to buy
           </div>
         </div>
-        <button className="btn btn-sm" onClick={copyToClipboard}
-          style={{ opacity: needToBuy.length ? 1 : 0.4 }}>
-          {copyLabel}
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+          <button className="btn btn-sm" onClick={copyToClipboard}
+            style={{ opacity: needToBuy.length ? 1 : 0.4 }}>
+            {copyLabel}
+          </button>
+          <a href="https://shoppinglist.google.com" target="_blank" rel="noopener noreferrer"
+            className="btn btn-sm"
+            style={{ textDecoration: 'none' }}>
+            🛒 Open Shopping List
+          </a>
+        </div>
       </div>
 
       {staplesCount > 0 && (
